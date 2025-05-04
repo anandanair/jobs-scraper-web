@@ -105,9 +105,6 @@ export default function TopMatchesList({
               <ExternalLink size={16} className="ml-2" />
             </Link>
 
-            <h3 className="text-lg font-semibold mb-2 border-t pt-4">
-              Description
-            </h3>
             <MarkdownRenderer content={selectedJob.description} />
           </div>
         ) : (
