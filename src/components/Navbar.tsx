@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation"; // Import usePathname
 import {
   Briefcase,
   Home,
@@ -16,12 +17,14 @@ import {
 // Improved with active state detection
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
-  const [activePath, setActivePath] = useState<string>("");
+  // Remove useState and useEffect for activePath
+  // const [activePath, setActivePath] = useState<string>("");
+  const pathname = usePathname(); // Get the current pathname reactively
 
-  // Update active path on client side
-  useEffect(() => {
-    setActivePath(window.location.pathname);
-  }, []);
+  // Update active path on client side - REMOVED
+  // useEffect(() => {
+  //   setActivePath(window.location.pathname);
+  // }, []);
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -64,7 +67,7 @@ export default function Navbar() {
                 href={item.href}
                 icon={item.icon}
                 text={item.text}
-                isActive={activePath === item.href}
+                isActive={pathname === item.href} // Use pathname directly
               />
             ))}
           </div>
@@ -100,7 +103,7 @@ export default function Navbar() {
               href={item.href}
               icon={item.icon}
               text={item.text}
-              isActive={activePath === item.href}
+              isActive={pathname === item.href} // Use pathname directly
               onClick={() => setIsMenuOpen(false)}
             />
           ))}
