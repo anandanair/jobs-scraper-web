@@ -75,4 +75,5 @@ export interface Resume {
   links: Links; // Changed to single object based on Python model
   parsed_at: string;
   last_updated?: string; // Optional field for last update timestamp
+  resume_link?: string; // Optional field for resume link ur
 }
