@@ -338,6 +338,7 @@ export default function TopMatchesList({
                 {showPdfViewer && pdfToView && (
                   <CustomPdfViewer
                     fileUrl={pdfToView}
+                    resumeId={selectedJob.customized_resume_id}
                     onClose={handleCloseViewer}
                   />
                 )}

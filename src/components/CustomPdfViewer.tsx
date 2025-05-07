@@ -14,7 +14,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 interface CustomPdfViewerProps {
   fileUrl: string;
-  resumeId?: string; // Optional resume ID for the edit button
+  resumeId?: string | null; // Optional resume ID for the edit button
   onClose: () => void;
 }
 
