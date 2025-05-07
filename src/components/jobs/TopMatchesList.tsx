@@ -326,7 +326,7 @@ export default function TopMatchesList({
                   <button
                     onClick={handleMarkAsApplied}
                     disabled={isUpdating}
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <CheckCircle size={16} className="mr-2" />
                     {isUpdating ? "Updating..." : "Mark as Applied"}
@@ -343,7 +343,7 @@ export default function TopMatchesList({
                   <button
                     onClick={() => handleSetInterest(true)}
                     disabled={isUpdatingInterest}
-                    className={`relative inline-flex items-center px-3 py-2 rounded-l-md text-sm font-medium focus:z-10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed
+                    className={`relative cursor-pointer inline-flex items-center px-3 py-2 rounded-l-md text-sm font-medium focus:z-10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed
                       ${
                         selectedJob.is_interested === true
                           ? "bg-green-600 text-white hover:bg-green-700"
@@ -365,7 +365,7 @@ export default function TopMatchesList({
                   <button
                     onClick={() => handleSetInterest(false)}
                     disabled={isUpdatingInterest}
-                    className={`relative inline-flex items-center px-3 py-2 rounded-r-md text-sm font-medium focus:z-10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed border-l border-gray-300
+                    className={`relative cursor-pointer inline-flex items-center px-3 py-2 rounded-r-md text-sm font-medium focus:z-10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed border-l border-gray-300
                       ${
                         selectedJob.is_interested === false
                           ? "bg-red-600 text-white hover:bg-red-700"
