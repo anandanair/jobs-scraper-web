@@ -217,16 +217,17 @@ export async function updateCustomizedResumeById(
  * @throws Will throw an error if the upload fails or the public URL cannot be retrieved.
  */
 export async function uploadPersonalizedResume(
-  filename: string,
+  fileName: string,
   file: File
 ): Promise<{ publicUrl: string }> {
   const supabase = await createSupabaseServerClient();
-  const filePath = `personalized_resumes/${filename}`;
+  const filePath = `personalized_resumes/${fileName}`;
+
+  console.log("Uploading file to path:", filePath);
 
   const { data: uploadData, error: uploadError } = await supabase.storage
     .from("resumes") // Your specified bucket name
     .upload(filePath, file, {
-      cacheControl: "3600",
       upsert: true, // Overwrite if file already exists
     });
 
