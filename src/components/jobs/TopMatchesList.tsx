@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Job } from "@/lib/supabase/queries"; // Keep Job type, remove updateJobById import
+import { Job } from "@/lib/supabase/queries";
 import PaginationControls from "./PaginationControls";
-import { ExternalLink, CheckCircle } from "lucide-react";
+import { ExternalLink, CheckCircle, ThumbsUp, ThumbsDown } from "lucide-react"; // Added ThumbsUp, ThumbsDown, removed Heart
 import MarkdownRenderer from "./MarkdownRenderer";
 
 interface TopMatchesListProps {
@@ -22,6 +22,7 @@ export default function TopMatchesList({
     jobs.length > 0 ? jobs[0] : null
   );
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUpdatingInterest, setIsUpdatingInterest] = useState(false);
 
   const handleJobSelect = (job: Job) => {
     setSelectedJob(job);
@@ -66,6 +67,53 @@ export default function TopMatchesList({
       alert(`An error occurred while marking the job as applied: ${message}`);
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleSetInterest = async (newInterestValue: boolean | null) => {
+    if (!selectedJob) {
+      return;
+    }
+
+    setIsUpdatingInterest(true);
+    let finalInterestValue: boolean | null;
+
+    // If the button clicked matches the current state, set to null (toggle off)
+    // Otherwise, set to the new value
+    if (selectedJob.is_interested === newInterestValue) {
+      finalInterestValue = null;
+    } else {
+      finalInterestValue = newInterestValue;
+    }
+
+    try {
+      const response = await fetch(`/api/jobs/${selectedJob.job_id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          is_interested: finalInterestValue,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const errorMessage =
+          errorData?.error || `HTTP error! status: ${response.status}`;
+        throw new Error(errorMessage);
+      }
+
+      const updatedJob: Job = await response.json();
+      setSelectedJob(updatedJob);
+      // Optional: Add alert or toast notification
+    } catch (error) {
+      console.error("Error updating job interest:", error);
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred.";
+      alert(`An error occurred while updating interest: ${message}`);
+    } finally {
+      setIsUpdatingInterest(false);
     }
   };
 
@@ -177,6 +225,50 @@ export default function TopMatchesList({
                   {isUpdating ? "Marking..." : "Mark as Applied"}
                 </button>
               )}
+              {/* Interested Button */}
+              <button
+                onClick={() => handleSetInterest(true)}
+                disabled={isUpdatingInterest}
+                className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 ${
+                  selectedJob.is_interested === true
+                    ? "bg-green-500 hover:bg-green-600 text-white"
+                    : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                }`}
+              >
+                <ThumbsUp
+                  size={16}
+                  className="mr-2"
+                  fill={
+                    selectedJob.is_interested === true ? "currentColor" : "none"
+                  }
+                />
+                {isUpdatingInterest && selectedJob.is_interested !== false // Show loading only if this button initiated it
+                  ? "Updating..."
+                  : "Interested"}
+              </button>
+              {/* Not Interested Button */}
+              <button
+                onClick={() => handleSetInterest(false)}
+                disabled={isUpdatingInterest}
+                className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 ${
+                  selectedJob.is_interested === false
+                    ? "bg-red-500 hover:bg-red-600 text-white"
+                    : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                }`}
+              >
+                <ThumbsDown
+                  size={16}
+                  className="mr-2"
+                  fill={
+                    selectedJob.is_interested === false
+                      ? "currentColor"
+                      : "none"
+                  }
+                />
+                {isUpdatingInterest && selectedJob.is_interested !== true // Show loading only if this button initiated it
+                  ? "Updating..."
+                  : "Not Interested"}
+              </button>
             </div>
 
             <MarkdownRenderer content={selectedJob.description} />
