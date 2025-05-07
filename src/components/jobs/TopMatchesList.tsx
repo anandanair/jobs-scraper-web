@@ -34,12 +34,16 @@ export default function TopMatchesList({
 
     setIsUpdating(true);
     try {
+      const currentDate = new Date().toISOString();
       const response = await fetch(`/api/jobs/${selectedJob.job_id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status: "applied" }), // Send only the status update
+        body: JSON.stringify({
+          status: "applied",
+          application_date: currentDate,
+        }), // Send only the status update
       });
 
       if (!response.ok) {
