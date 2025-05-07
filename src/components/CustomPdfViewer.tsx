@@ -14,15 +14,9 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 interface CustomPdfViewerProps {
   fileUrl: string;
-  resumeId?: string | null; // Optional resume ID for the edit button
-  onClose: () => void;
 }
 
-export default function CustomPdfViewer({
-  fileUrl,
-  resumeId,
-  onClose,
-}: CustomPdfViewerProps) {
+export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
   const router = useRouter();
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number>(1);
@@ -90,9 +84,11 @@ export default function CustomPdfViewer({
   };
 
   const handleEditClick = () => {
-    if (resumeId) {
-      router.push(`/resumes/${resumeId}/edit`);
-    }
+    router.push(`${window.location.pathname}/edit`);
+  };
+
+  const onClose = () => {
+    router.back();
   };
 
   // ESC key handler
@@ -269,14 +265,12 @@ export default function CustomPdfViewer({
         </div>
 
         <div className="flex items-center space-x-2">
-          {resumeId && (
-            <button
-              onClick={handleEditClick}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Edit
-            </button>
-          )}
+          <button
+            onClick={handleEditClick}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Edit
+          </button>
 
           <button
             onClick={onClose}

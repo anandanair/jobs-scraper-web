@@ -14,8 +14,8 @@ import {
   FileText,
 } from "lucide-react";
 import MarkdownRenderer from "./MarkdownRenderer";
-import CustomPdfViewer from "@/components/CustomPdfViewer";
 import { Job } from "@/types";
+import { useRouter } from "next/navigation";
 
 interface TopMatchesListProps {
   jobs: Job[];
@@ -33,18 +33,13 @@ export default function TopMatchesList({
   );
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingInterest, setIsUpdatingInterest] = useState(false);
+  const router = useRouter();
 
-  const [showPdfViewer, setShowPdfViewer] = useState(false);
-  const [pdfToView, setPdfToView] = useState<string | null>(null);
-
-  const handleViewResume = (resumeLink: string) => {
-    setPdfToView(resumeLink);
-    setShowPdfViewer(true);
-  };
-
-  const handleCloseViewer = () => {
-    setShowPdfViewer(false);
-    setPdfToView(null);
+  const handleViewResume = (
+    job_id: string,
+    resume_id: string | null | undefined
+  ) => {
+    router.push(`/jobs/${job_id}/resumes/${resume_id}`);
   };
 
   const handleJobSelect = (job: Job) => {
@@ -326,21 +321,18 @@ export default function TopMatchesList({
 
                 {selectedJob.resume_link && (
                   <button
-                    onClick={() => handleViewResume(selectedJob.resume_link!)}
+                    onClick={() =>
+                      handleViewResume(
+                        selectedJob.job_id,
+                        selectedJob.customized_resume_id
+                      )
+                    }
                     className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
                   >
                     View Resume
                     <FileText size={16} className="ml-2" />
                     {/* You can add an icon here too */}
                   </button>
-                )}
-
-                {showPdfViewer && pdfToView && (
-                  <CustomPdfViewer
-                    fileUrl={pdfToView}
-                    resumeId={selectedJob.customized_resume_id}
-                    onClose={handleCloseViewer}
-                  />
                 )}
 
                 {selectedJob.status !== "applied" ? (
