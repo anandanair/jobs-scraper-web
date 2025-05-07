@@ -11,10 +11,10 @@ import {
   ThumbsDown,
   BuildingIcon,
   MapPinIcon,
-  CalendarIcon,
   BarChart3Icon,
 } from "lucide-react";
 import MarkdownRenderer from "./MarkdownRenderer";
+import CustomPdfViewer from "@/components/CustomPdfViewer";
 
 interface TopMatchesListProps {
   jobs: Job[];
@@ -32,6 +32,19 @@ export default function TopMatchesList({
   );
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingInterest, setIsUpdatingInterest] = useState(false);
+
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [pdfToView, setPdfToView] = useState<string | null>(null);
+
+  const handleViewResume = (resumeLink: string) => {
+    setPdfToView(resumeLink);
+    setShowPdfViewer(true);
+  };
+
+  const handleCloseViewer = () => {
+    setShowPdfViewer(false);
+    setPdfToView(null);
+  };
 
   const handleJobSelect = (job: Job) => {
     setSelectedJob(job);
@@ -311,6 +324,36 @@ export default function TopMatchesList({
                 </Link>
 
                 {selectedJob.resume_link && (
+                  <div>
+                    <button
+                      onClick={() => handleViewResume(selectedJob.resume_link!)}
+                      className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                    >
+                      View Resume
+                      {/* You can add an icon here too */}
+                    </button>
+
+                    {/* Optional: Keep the original link if desired */}
+                    <Link
+                      href={selectedJob.resume_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-4 inline-flex items-center px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors"
+                    >
+                      Open Resume in New Tab{" "}
+                      <ExternalLink size={16} className="ml-2" />
+                    </Link>
+                  </div>
+                )}
+
+                {showPdfViewer && pdfToView && (
+                  <CustomPdfViewer
+                    fileUrl={pdfToView}
+                    onClose={handleCloseViewer}
+                  />
+                )}
+
+                {/* {selectedJob.resume_link && (
                   <Link
                     href={selectedJob.resume_link}
                     target="_blank"
@@ -320,7 +363,7 @@ export default function TopMatchesList({
                     View Resume
                     <ExternalLink size={16} className="ml-2" />
                   </Link>
-                )}
+                )} */}
 
                 {selectedJob.status !== "applied" ? (
                   <button
