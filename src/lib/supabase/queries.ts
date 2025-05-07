@@ -19,7 +19,7 @@ export interface Job {
   last_checked: string;
   resume_link: string | null;
   resume_score_stage: string;
-  is_interested: boolean;
+  is_interested: boolean | null;
 }
 
 // --- Resume Related Interfaces ---
@@ -112,25 +112,28 @@ export async function getTopScoredJobs(
   page: number = 1, // Default to page 1
   pageSize: number = 10 // Default page size
 ): Promise<Job[]> {
-  const from = (page - 1) * pageSize; // Calculate starting index (0-based)
   const supabase = await createSupabaseServerClient();
-  const to = from + pageSize - 1; // Calculate ending index
 
-  const response = await supabase
-    .from("jobs")
-    .select("*")
-    .eq("is_active", true)
-    .eq("status", "new") // Filter by status
-    .eq("job_state", "new")
-    .not("resume_score", "is", null) // Ensure score exists
-    .order("resume_score", { ascending: false })
-    .range(from, to); // Use range for pagination instead of limit
-  // Use handleResponse, but ensure it handles empty arrays correctly
+  const rpcParams = {
+    p_page_number: page,
+    p_page_size: pageSize,
+  };
+
+  const response = await supabase.rpc(
+    "get_top_scored_jobs_custom_sort",
+    rpcParams
+  );
+
+  // The existing handleResponse function can be used if it expects { data, error }
+  // and data is the array of jobs.
+  // If rpc() returns data directly in response.data without an outer data property, adjust accordingly.
+  // Assuming supabase.rpc returns { data: Job[], error: PostgrestError | null }
   const data = await handleResponse(response);
   return data ?? []; // Return empty array if data is null/undefined
 }
 
 // New function to get the count of top scored jobs
+// This function remains unchanged as sorting doesn't affect the count of matching items.
 export async function getTopScoredJobsCount(): Promise<number> {
   const supabase = await createSupabaseServerClient();
   const { count, error } = await supabase
