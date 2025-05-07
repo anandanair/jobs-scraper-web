@@ -1,12 +1,12 @@
 import {
   getTopScoredJobs,
   getTopScoredJobsCount,
-  Job,
 } from "@/lib/supabase/queries";
 import TopMatchesList from "@/components/jobs/TopMatchesList";
 import { Suspense } from "react";
 import { Filter } from "lucide-react";
 import RefreshButton from "@/components/jobs/RefreshButton";
+import { Job } from "@/types";
 
 const PAGE_SIZE = 10; // Define page size
 
