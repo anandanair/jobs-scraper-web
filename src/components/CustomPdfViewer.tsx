@@ -7,10 +7,7 @@ import { useRouter } from "next/navigation";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
+pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
 interface CustomPdfViewerProps {
   fileUrl: string;
@@ -27,6 +24,26 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
   const [showSidebar, setShowSidebar] = useState(true);
   const viewerRef = useRef<HTMLDivElement>(null);
 
+  const [effectiveFileUrl, setEffectiveFileUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (fileUrl) {
+      // Generate a new URL with timestamp when fileUrl changes or on initial mount
+      const urlWithTimestamp = `${fileUrl}?t=${Date.now()}`;
+      setEffectiveFileUrl(urlWithTimestamp);
+
+      // Reset states for the new PDF
+      setIsLoading(true);
+      setNumPages(null);
+      setPageNumber(1); // Go to first page for new/reloaded PDF
+      setPdfError(null);
+      setThumbnails([]); // Clear old thumbnails
+    } else {
+      setEffectiveFileUrl(null); // Handle cases where fileUrl might be initially null/undefined
+      setIsLoading(false); // Not loading if no URL
+    }
+  }, [fileUrl]); // Re-run ONLY when the fileUrl prop changes (and on initial mount)
+
   // Generate thumbnail array when numPages is set
   useEffect(() => {
     if (numPages) {
@@ -41,14 +58,14 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
       numPages,
       pageNumber,
       pdfError,
+      currentUrl: effectiveFileUrl,
     });
-  }, [isLoading, numPages, pageNumber, pdfError]);
+  }, [isLoading, numPages, pageNumber, pdfError, effectiveFileUrl]);
 
   const onDocumentLoadSuccess = useCallback(
     ({ numPages: nextNumPages }: { numPages: number }) => {
       console.log("PDF loaded successfully with", nextNumPages, "pages");
       setNumPages(nextNumPages);
-      setPageNumber(1);
       setIsLoading(false);
       setPdfError(null);
     },
@@ -61,6 +78,7 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
       `Failed to load PDF document. Please ensure the link is correct and the file is accessible. ${error.message}`
     );
     setIsLoading(false);
+    setNumPages(null); // Clear numPages on error
   }, []);
 
   const goToPage = (page: number) => {
@@ -104,11 +122,45 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
     };
   }, [onClose]);
 
+  // Initial check if the base fileUrl is provided
   if (!fileUrl) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
         <div className="bg-white p-6 rounded-lg shadow-xl text-center">
           <p className="text-red-600">No PDF file URL provided.</p>
+          <button
+            onClick={onClose}
+            className="mt-4 px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Now, ensure effectiveFileUrl is ready before rendering the Document components
+  if (!effectiveFileUrl && isLoading) {
+    // Show a general loading indicator if effectiveFileUrl is not yet set
+    // (e.g. fileUrl was just provided and useEffect is about to run)
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600"></div>
+      </div>
+    );
+  }
+
+  if (!effectiveFileUrl && !isLoading) {
+    // This case might happen if fileUrl was initially null and then provided,
+    // but something went wrong, or if fileUrl is an empty string.
+    // Or, if fileUrl was valid, then became invalid.
+    // Essentially, if we're not loading and don't have a URL to use.
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
+        <div className="bg-white p-6 rounded-lg shadow-xl text-center">
+          <p className="text-red-600">
+            PDF URL is invalid or could not be processed.
+          </p>
           <button
             onClick={onClose}
             className="mt-4 px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
@@ -281,49 +333,56 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
         </div>
       </div>
 
-      {/* Main content area with sidebar and document */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Thumbnails sidebar */}
         {showSidebar && (
           <div className="w-48 lg:w-56 flex-shrink-0 overflow-y-auto bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
-            {isLoading ? (
+            {/* Show spinner for thumbnails if main doc is loading, or if no pages yet and no error */}
+            {(isLoading || (!numPages && !pdfError)) && effectiveFileUrl ? (
               <div className="flex items-center justify-center h-24">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
               </div>
+            ) : pdfError ? (
+              <div className="p-4 text-xs text-red-500 text-center">
+                Error loading thumbnails.
+              </div>
             ) : (
-              <div className="p-2">
-                {thumbnails.map((pageIdx) => (
-                  <div
-                    key={pageIdx}
-                    onClick={() => goToPage(pageIdx)}
-                    className={`cursor-pointer p-2 mb-2 rounded-md transition-colors ${
-                      pageNumber === pageIdx
-                        ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20"
-                        : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                    }`}
-                  >
-                    <div className="bg-white dark:bg-gray-700 p-1 rounded shadow-sm">
-                      <Document
-                        file={fileUrl}
-                        className="thumbnail-document"
-                        loading={
-                          <div className="h-32 bg-gray-200 dark:bg-gray-600 animate-pulse rounded"></div>
-                        }
-                      >
-                        <Page
-                          pageNumber={pageIdx}
-                          width={150}
-                          renderTextLayer={false}
-                          renderAnnotationLayer={false}
-                        />
-                      </Document>
-                      <div className="mt-1 text-center text-xs text-gray-600 dark:text-gray-300">
-                        Page {pageIdx}
+              numPages &&
+              effectiveFileUrl &&
+              thumbnails.length > 0 && ( // Ensure thumbnails are ready
+                <div className="p-2">
+                  {thumbnails.map((pageIdx) => (
+                    <div
+                      key={`thumb-${pageIdx}`}
+                      onClick={() => goToPage(pageIdx)}
+                      className={`cursor-pointer p-2 mb-2 rounded-md transition-colors ${
+                        pageNumber === pageIdx
+                          ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20"
+                          : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                      }`}
+                    >
+                      <div className="bg-white dark:bg-gray-700 p-1 rounded shadow-sm">
+                        <Document
+                          file={effectiveFileUrl} // USE effectiveFileUrl
+                          className="thumbnail-document"
+                          loading={
+                            <div className="h-32 bg-gray-200 dark:bg-gray-600 animate-pulse rounded"></div>
+                          }
+                        >
+                          <Page
+                            pageNumber={pageIdx}
+                            width={150}
+                            renderTextLayer={false}
+                            renderAnnotationLayer={false}
+                          />
+                        </Document>
+                        <div className="mt-1 text-center text-xs text-gray-600 dark:text-gray-300">
+                          Page {pageIdx}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
             )}
           </div>
         )}
@@ -359,36 +418,46 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
             </div>
           )}
 
-          {/* Basic PDF document - simplify to fix loading issues */}
-          <div
-            className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-1 ${
-              isLoading && "flex justify-center items-center w-full"
-            }`}
-          >
-            <Document
-              file={fileUrl}
-              onLoadSuccess={onDocumentLoadSuccess}
-              onLoadError={onDocumentLoadError}
+          {!pdfError && effectiveFileUrl && (
+            <div
+              className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-1 ${
+                isLoading && "flex justify-center items-center w-full" // This class applies during loading
+              }`}
             >
-              {!isLoading && !pdfError ? (
-                <Page
-                  key={`page_${pageNumber}`}
-                  pageNumber={pageNumber}
-                  scale={scale}
-                  renderTextLayer={true}
-                  renderAnnotationLayer={true}
-                  className="pdf-page"
-                />
-              ) : (
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600 mx-auto"></div>
-                  <p className="mt-4 text-gray-600 dark:text-gray-300">
-                    Loading PDF...
-                  </p>
-                </div>
-              )}
-            </Document>
-          </div>
+              <Document
+                file={effectiveFileUrl} // USE effectiveFileUrl
+                onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={onDocumentLoadError}
+                // Optional: loading prop for Document itself, if you want a spinner *inside* the Document area
+                // loading={
+                //   <div className="text-center p-10">
+                //     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600 mx-auto"></div>
+                //     <p className="mt-4 text-gray-600 dark:text-gray-300">Initializing PDF...</p>
+                //   </div>
+                // }
+              >
+                {
+                  isLoading && !pdfError ? ( // If still loading and no error, show spinner
+                    <div className="text-center p-10">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600 mx-auto"></div>
+                      <p className="mt-4 text-gray-600 dark:text-gray-300">
+                        Loading PDF...
+                      </p>
+                    </div>
+                  ) : !isLoading && !pdfError && numPages ? ( // If loaded, no error, and have pages
+                    <Page
+                      key={`page_${pageNumber}_${scale}`} // Key change on scale might help re-render if zoom has issues
+                      pageNumber={pageNumber}
+                      scale={scale}
+                      renderTextLayer={true}
+                      renderAnnotationLayer={true}
+                      className="pdf-page"
+                    />
+                  ) : null /* No page content if error or not loaded */
+                }
+              </Document>
+            </div>
+          )}
         </div>
       </div>
     </div>
