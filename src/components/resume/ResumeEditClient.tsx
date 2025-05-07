@@ -1,6 +1,5 @@
 "use client"; // Ensure this is a client component
 
-import { uploadPersonalizedResume } from "@/lib/supabase/queries";
 import {
   Resume,
   Education,
@@ -145,7 +144,15 @@ export default function ResumeEditClient({
 
     try {
       // Generate PDF
-      finalUpdateData.resume_link = await generateResumePdf(formData);
+      const generatedPdfUrl = await generateResumePdf(formData);
+
+      if (generatedPdfUrl) {
+        finalUpdateData.resume_link = generatedPdfUrl;
+      } else {
+        console.warn(
+          "PDF generation/upload failed. Proceeding to save other resume data without PDF link."
+        );
+      }
 
       const response = await fetch(`/api/customized_resumes/${id}`, {
         method: "PATCH",
@@ -223,11 +230,20 @@ export default function ResumeEditClient({
     ));
   };
 
-  async function generateResumePdf(resumeData: Resume) {
+  async function generateResumePdf(resumeDataForPdf: Resume) {
+    const {
+      id,
+      created_at,
+      parsed_at,
+      last_updated,
+      resume_link,
+      ...cleanedResumeDataForPdf
+    } = resumeDataForPdf;
+
     try {
       const pdfResponse = await axios.post(
         "https://generate-pdf-resume-production.up.railway.app/generate-resume/",
-        resumeData,
+        cleanedResumeDataForPdf,
         {
           responseType: "blob", // PDF is binary
           headers: {
@@ -245,12 +261,49 @@ export default function ResumeEditClient({
         type: "application/pdf",
       });
 
-      // 4. Upload the file using uploadPersonalizedResume
-      const { publicUrl } = await uploadPersonalizedResume(fileName, file);
-      console.log("Uploaded personalized resume, public URL:", publicUrl);
-      return publicUrl; // Return the public URL
+      // Step 3: Upload the file using the new API endpoint
+      const formDataToUpload = new FormData();
+      formDataToUpload.append("file", file);
+      formDataToUpload.append("fileName", fileName);
+
+      const uploadResponse = await fetch(
+        `/api/customized_resumes/${resumeDataForPdf.id}/`,
+        {
+          // Using job_id from props
+          method: "POST",
+          body: formDataToUpload,
+          // Headers for FormData (like Content-Type: multipart/form-data) are set automatically by the browser
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({
+          error: "Upload failed with no JSON response",
+          details: `HTTP status: ${uploadResponse.status}`,
+        }));
+        throw new Error(
+          errorData.error || `Failed to upload PDF: ${errorData.details}`
+        );
+      }
+
+      const { publicUrl } = await uploadResponse.json();
+      console.log(
+        "Uploaded personalized resume via API, public URL:",
+        publicUrl
+      );
+      return publicUrl;
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error(
+        "Error in generateResumePdf (generating or uploading PDF):",
+        error
+      );
+      setError(
+        // Assuming setError is available in this scope (it is, as part of ResumeEditClient)
+        error instanceof Error
+          ? `Failed to generate or upload resume: ${error.message}`
+          : "An unexpected error occurred while generating/uploading the resume."
+      );
+      return undefined;
     }
   }
 
