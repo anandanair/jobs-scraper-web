@@ -5,7 +5,7 @@ import {
 } from "@/lib/supabase/queries";
 import TopMatchesList from "@/components/jobs/TopMatchesList";
 import { Suspense } from "react";
-import { BarChart3Icon, Filter } from "lucide-react";
+import { Filter } from "lucide-react";
 import RefreshButton from "@/components/jobs/RefreshButton";
 
 const PAGE_SIZE = 10; // Define page size
