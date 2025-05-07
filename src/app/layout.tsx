@@ -26,17 +26,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen bg-gray-50`} // Added a light background color
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col h-screen bg-gray-50 overflow-hidden`} // Added h-screen and overflow-hidden
       >
-        <Navbar /> {/* Use the Navbar component here */}
-        {/* Main content area */}
-        <main className="flex-grow container mx-auto p-4">{children}</main>
-        {/* Placeholder for Footer */}
-        <footer className="bg-gray-200 p-4 text-center text-sm text-gray-600 mt-auto">
+        <Navbar /> {/* Fixed at top */}
+        {/* Main content area with overflow scrolling */}
+        <main className="flex-grow container mx-auto p-4 overflow-auto">
+          {children}
+        </main>
+        {/* Footer fixed at bottom */}
+        <footer className="flex-shrink-0 bg-gray-200 p-4 text-center text-sm text-gray-600">
           {" "}
-          {/* Added mt-auto to help push footer down */}
-          {/* Add your Footer content here */}© {new Date().getFullYear()} Job
-          App Tracker
+          © {new Date().getFullYear()} Job App Tracker
         </footer>
       </body>
     </html>
