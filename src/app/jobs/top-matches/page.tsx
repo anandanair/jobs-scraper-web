@@ -5,7 +5,8 @@ import {
 } from "@/lib/supabase/queries";
 import TopMatchesList from "@/components/jobs/TopMatchesList";
 import { Suspense } from "react";
-import { BarChart3Icon, Filter, RefreshCcw } from "lucide-react";
+import { BarChart3Icon, Filter } from "lucide-react";
+import RefreshButton from "@/components/jobs/RefreshButton";
 
 const PAGE_SIZE = 10; // Define page size
 
@@ -89,24 +90,13 @@ export default async function TopMatchesPage({
         <div className="flex items-center space-x-3">
           <button
             type="button"
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="inline-flex cursor-pointer items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <Filter className="h-4 w-4 mr-2 text-gray-500" />
             Filter
           </button>
 
-          <button
-            type="button"
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <RefreshCcw className="h-4 w-4 mr-2 text-gray-500" />
-            Refresh
-          </button>
-
-          <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full flex items-center text-sm font-medium">
-            <BarChart3Icon className="h-4 w-4 mr-1.5" />
-            Resume Match
-          </div>
+          <RefreshButton currentPage={currentPage} />
         </div>
       </div>
 
