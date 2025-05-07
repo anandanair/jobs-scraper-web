@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { updateJobById, Job } from "@/lib/supabase/queries"; // Adjust path as needed
+import { updateJobById } from "@/lib/supabase/queries"; // Adjust path as needed
+import { Job } from "@/types";
 
 // Handler for PATCH requests to update a job
 export async function PATCH(
