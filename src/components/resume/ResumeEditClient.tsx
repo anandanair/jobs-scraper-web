@@ -9,6 +9,7 @@ import {
   Links,
 } from "@/types";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 
 interface ResumeEditProps {
@@ -24,6 +25,7 @@ export default function ResumeEditClient({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     // Update formData if the initial resumeData prop changes
@@ -178,6 +180,7 @@ export default function ResumeEditClient({
       if (updatedResume) {
         setFormData(updatedResume); // Update form with data from server (e.g., if server modifies it)
         setSuccessMessage("Resume updated successfully!");
+        router.push(`/jobs/${job_id}/resumes/${id}`);
       } else {
         setError(
           "Failed to update resume. The resume might not have been found or an unknown error occurred."
@@ -266,15 +269,12 @@ export default function ResumeEditClient({
       formDataToUpload.append("file", file);
       formDataToUpload.append("fileName", fileName);
 
-      const uploadResponse = await fetch(
-        `/api/customized_resumes/${resumeDataForPdf.id}/`,
-        {
-          // Using job_id from props
-          method: "POST",
-          body: formDataToUpload,
-          // Headers for FormData (like Content-Type: multipart/form-data) are set automatically by the browser
-        }
-      );
+      const uploadResponse = await fetch(`/api/customized_resumes/${id}/`, {
+        // Using job_id from props
+        method: "POST",
+        body: formDataToUpload,
+        // Headers for FormData (like Content-Type: multipart/form-data) are set automatically by the browser
+      });
 
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.json().catch(() => ({
