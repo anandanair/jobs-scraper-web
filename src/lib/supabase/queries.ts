@@ -207,3 +207,59 @@ export async function updateCustomizedResumeById(
   }
   return data as Resume | null;
 }
+
+// New function to upload a personalized resume PDF to Supabase Storage
+/**
+ * Uploads a personalized resume PDF to Supabase Storage.
+ * @param job_id The ID of the job for which the resume is personalized.
+ * @param file The PDF file to upload.
+ * @returns A promise that resolves to an object containing the public URL of the uploaded file.
+ * @throws Will throw an error if the upload fails or the public URL cannot be retrieved.
+ */
+export async function uploadPersonalizedResume(
+  filename: string,
+  file: File
+): Promise<{ publicUrl: string }> {
+  const supabase = await createSupabaseServerClient();
+  const filePath = `personalized_resumes/${filename}`;
+
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from("resumes") // Your specified bucket name
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: true, // Overwrite if file already exists
+    });
+
+  if (uploadError) {
+    console.error("Supabase storage upload error:", uploadError);
+    throw new Error(
+      `Failed to upload personalized resume: ${uploadError.message}`
+    );
+  }
+
+  if (!uploadData || !uploadData.path) {
+    console.error(
+      "Supabase storage upload error: No path returned despite no error."
+    );
+    throw new Error(
+      "Failed to upload personalized resume: No path returned from storage."
+    );
+  }
+
+  // Get the public URL of the uploaded file
+  const { data: publicUrlData } = supabase.storage
+    .from("resumes")
+    .getPublicUrl(uploadData.path);
+
+  if (!publicUrlData || !publicUrlData.publicUrl) {
+    console.error(
+      "Supabase storage error: Could not retrieve public URL for uploaded file."
+    );
+    // It might be useful to also log uploadData.path here for debugging
+    throw new Error(
+      "Failed to get public URL for personalized resume. The file was uploaded, but its URL could not be retrieved."
+    );
+  }
+
+  return { publicUrl: publicUrlData.publicUrl };
+}
