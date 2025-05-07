@@ -9,7 +9,6 @@ export interface Job {
   level: string;
   location: string;
   description: string;
-  job_state: string;
   status: string;
   is_active: boolean;
   application_date: string;
@@ -17,9 +16,11 @@ export interface Job {
   notes?: string;
   scraped_at: string;
   last_checked: string;
-  resume_link: string | null;
+  job_state: string;
   resume_score_stage: string;
   is_interested: boolean | null;
+  customized_resume_id?: string | null;
+  resume_link?: string | null;
 }
 
 // --- Resume Related Interfaces ---
