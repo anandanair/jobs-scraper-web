@@ -46,7 +46,7 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="bg-white border-b border-gray-100">
+    <header className="bg-white border-b border-gray-100 flex-shrink-0">
       <div className="container mx-auto px-4">
         <nav className="flex justify-between items-center h-16">
           {/* Logo */}
