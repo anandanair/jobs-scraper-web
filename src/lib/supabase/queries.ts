@@ -1,7 +1,5 @@
-import { createClient } from "@/utils/supabase/server";
+import { createSupabaseServerClient } from "@/utils/supabase/server";
 import { PostgrestError } from "@supabase/supabase-js";
-
-const supabase = await createClient();
 
 // Define basic types (you can refine these later based on your actual table structure)
 export interface Job {
@@ -17,6 +15,8 @@ export interface Job {
   scraped_at: string;
   last_checked: string;
   job_state: string;
+  resume_link: string | null;
+  resume_score_stage: string;
 }
 
 // --- Resume Related Interfaces ---
@@ -96,6 +96,7 @@ async function handleResponse({
 // --- Query Functions ---
 
 export async function getAllJobs(): Promise<Job[]> {
+  const supabase = await createSupabaseServerClient();
   const response = await supabase
     .from("jobs")
     .select("*")
@@ -109,12 +110,15 @@ export async function getTopScoredJobs(
   pageSize: number = 10 // Default page size
 ): Promise<Job[]> {
   const from = (page - 1) * pageSize; // Calculate starting index (0-based)
+  const supabase = await createSupabaseServerClient();
   const to = from + pageSize - 1; // Calculate ending index
 
   const response = await supabase
     .from("jobs")
     .select("*")
     .eq("is_active", true)
+    .eq("status", "new") // Filter by status
+    .eq("job_state", "new")
     .not("resume_score", "is", null) // Ensure score exists
     .order("resume_score", { ascending: false })
     .range(from, to); // Use range for pagination instead of limit
@@ -125,6 +129,7 @@ export async function getTopScoredJobs(
 
 // New function to get the count of top scored jobs
 export async function getTopScoredJobsCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
   const { count, error } = await supabase
     .from("jobs")
     .select("*", { count: "exact", head: true }) // Select count only
@@ -140,6 +145,7 @@ export async function getTopScoredJobsCount(): Promise<number> {
 }
 
 export async function getNewJobs(limit: number = 20): Promise<Job[]> {
+  const supabase = await createSupabaseServerClient();
   const response = await supabase
     .from("jobs")
     .select("*")
@@ -152,6 +158,7 @@ export async function getNewJobs(limit: number = 20): Promise<Job[]> {
 
 export async function getAppliedJobs(): Promise<Job[]> {
   const appliedStatuses = ["applied", "interviewing", "offer"]; // Define statuses to fetch
+  const supabase = await createSupabaseServerClient();
   const response = await supabase
     .from("jobs")
     .select("*")
@@ -162,6 +169,7 @@ export async function getAppliedJobs(): Promise<Job[]> {
 }
 
 export async function getJobById(job_id: string): Promise<Job | null> {
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("jobs")
     .select("*")
@@ -177,6 +185,7 @@ export async function getJobById(job_id: string): Promise<Job | null> {
 }
 
 export async function getUserResume(): Promise<Resume | null> {
+  const supabase = await createSupabaseServerClient();
   const response = await supabase
     .from("resumes") // Use the 'resumes' table
     .select("*")
@@ -184,4 +193,32 @@ export async function getUserResume(): Promise<Resume | null> {
     .maybeSingle();
 
   return handleResponse(response);
+}
+
+// New function to update a job by its ID
+export async function updateJobById(
+  job_id: string,
+  updates: Partial<Omit<Job, "job_id">>
+): Promise<Job | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("jobs")
+    .update(updates)
+    .eq("job_id", job_id)
+    .select() // Select the updated row
+    .single(); // Expect a single row to be returned
+
+  // The handleResponse function might need adjustment if it's not designed for single object returns
+  // or if you want specific error handling for updates.
+  // For now, we'll adapt the error handling similar to getJobById.
+  if (error) {
+    // PGRST116: Row not found, which means the job_id didn't match any record.
+    if (error.code === "PGRST116") {
+      console.warn(`Job with ID ${job_id} not found for update.`);
+      return null;
+    }
+    console.error("Supabase update error:", error);
+    throw new Error(error.message);
+  }
+  return data as Job | null; // Cast to Job or null
 }
