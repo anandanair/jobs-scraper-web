@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Job } from "@/lib/supabase/queries";
 import PaginationControls from "./PaginationControls";
 import {
   ExternalLink,
@@ -16,6 +15,7 @@ import {
 } from "lucide-react";
 import MarkdownRenderer from "./MarkdownRenderer";
 import CustomPdfViewer from "@/components/CustomPdfViewer";
+import { Job } from "@/types";
 
 interface TopMatchesListProps {
   jobs: Job[];
