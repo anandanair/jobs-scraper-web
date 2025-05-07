@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link"; // Import Link for the button
-import { Job } from "@/lib/supabase/queries";
+import Link from "next/link";
+import { Job } from "@/lib/supabase/queries"; // Keep Job type, remove updateJobById import
 import PaginationControls from "./PaginationControls";
-import { ExternalLink } from "lucide-react"; // Icon for the link button
+import { ExternalLink, CheckCircle } from "lucide-react";
 import MarkdownRenderer from "./MarkdownRenderer";
 
 interface TopMatchesListProps {
@@ -18,34 +18,67 @@ export default function TopMatchesList({
   currentPage,
   totalPages,
 }: TopMatchesListProps) {
-  // State to keep track of the selected job
   const [selectedJob, setSelectedJob] = useState<Job | null>(
-    jobs.length > 0 ? jobs[0] : null // Select the first job by default if available
+    jobs.length > 0 ? jobs[0] : null
   );
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  // Function to handle clicking on a job item
   const handleJobSelect = (job: Job) => {
     setSelectedJob(job);
   };
 
+  const handleMarkAsApplied = async () => {
+    if (!selectedJob || selectedJob.status === "applied") {
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`/api/jobs/${selectedJob.job_id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "applied" }), // Send only the status update
+      });
+
+      if (!response.ok) {
+        // Try to parse error message from server if available
+        const errorData = await response.json().catch(() => null);
+        const errorMessage =
+          errorData?.error || `HTTP error! status: ${response.status}`;
+        throw new Error(errorMessage);
+      }
+
+      const updatedJob: Job = await response.json();
+      setSelectedJob(updatedJob);
+      // Optionally, update the 'jobs' list in the parent component or re-fetch
+      // to reflect the change in the list as well.
+      alert("Job marked as applied!");
+    } catch (error) {
+      console.error("Error marking job as applied:", error);
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred.";
+      alert(`An error occurred while marking the job as applied: ${message}`);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-10rem)]">
-      {" "}
-      {/* Adjust height as needed */}
       {/* Left Column: Job List */}
       <div className="w-full md:w-1/3 flex flex-col">
         {jobs.length > 0 ? (
           <>
             <ul className="space-y-3 overflow-y-auto flex-grow pr-2">
-              {" "}
-              {/* Added padding-right */}
               {jobs.map((job) => (
                 <li
                   key={job.job_id}
                   onClick={() => handleJobSelect(job)}
                   className={`border p-3 rounded-md shadow-sm cursor-pointer transition-colors duration-150 ${
                     selectedJob?.job_id === job.job_id
-                      ? "bg-indigo-50 border-indigo-300" // Highlight selected job
+                      ? "bg-indigo-50 border-indigo-300"
                       : "bg-white hover:bg-gray-50"
                   }`}
                 >
@@ -57,12 +90,19 @@ export default function TopMatchesList({
                   {job.resume_score && (
                     <p className="mt-1 text-sm font-medium text-green-600">
                       Score: {job.resume_score.toFixed(2)}
+                      {job.resume_score_stage && (
+                        <span className="text-xs text-gray-500 ml-1">
+                          (
+                          {job.resume_score_stage.charAt(0).toUpperCase() +
+                            job.resume_score_stage.slice(1)}
+                          )
+                        </span>
+                      )}
                     </p>
                   )}
                 </li>
               ))}
             </ul>
-            {/* Render Pagination Controls below the list */}
             {totalPages > 1 && (
               <div className="mt-4 flex-shrink-0">
                 <PaginationControls
@@ -91,19 +131,49 @@ export default function TopMatchesList({
             {selectedJob.resume_score && (
               <p className="mb-4 font-medium text-green-600">
                 Resume Score: {selectedJob.resume_score.toFixed(2)}
+                {selectedJob.resume_score_stage && (
+                  <span className="text-sm text-gray-500 ml-1">
+                    (
+                    {selectedJob.resume_score_stage.charAt(0).toUpperCase() +
+                      selectedJob.resume_score_stage.slice(1)}
+                    )
+                  </span>
+                )}
               </p>
             )}
 
-            {/* Link to Original Job Post */}
-            <Link
-              href={`https://www.linkedin.com/jobs/view/${selectedJob.job_id}`}
-              target="_blank" // Open in new tab
-              rel="noopener noreferrer" // Security best practice
-              className="inline-flex items-center px-4 py-2 mb-6 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors"
-            >
-              View Job Post
-              <ExternalLink size={16} className="ml-2" />
-            </Link>
+            <div className="flex flex-wrap gap-4 mb-6">
+              <Link
+                href={`https://www.linkedin.com/jobs/view/${selectedJob.job_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors"
+              >
+                View Job Post
+                <ExternalLink size={16} className="ml-2" />
+              </Link>
+              {selectedJob.resume_link && (
+                <Link
+                  href={selectedJob.resume_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+                >
+                  View Resume
+                  <ExternalLink size={16} className="ml-2" />
+                </Link>
+              )}
+              {selectedJob.status !== "applied" && (
+                <button
+                  onClick={handleMarkAsApplied}
+                  disabled={isUpdating}
+                  className="inline-flex items-center px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50"
+                >
+                  <CheckCircle size={16} className="mr-2" />
+                  {isUpdating ? "Marking..." : "Mark as Applied"}
+                </button>
+              )}
+            </div>
 
             <MarkdownRenderer content={selectedJob.description} />
           </div>
