@@ -74,4 +74,5 @@ export interface Resume {
   languages: Record<string, any>[]; // Keep generic or define language structure if known
   links: Links; // Changed to single object based on Python model
   parsed_at: string;
+  last_updated?: string; // Optional field for last update timestamp
 }
