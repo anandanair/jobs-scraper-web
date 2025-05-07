@@ -1,83 +1,6 @@
+import { Job, Resume } from "@/types";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
 import { PostgrestError } from "@supabase/supabase-js";
-
-// Define basic types (you can refine these later based on your actual table structure)
-export interface Job {
-  job_id: string;
-  company: string;
-  job_title: string;
-  level: string;
-  location: string;
-  description: string;
-  status: string;
-  is_active: boolean;
-  application_date: string;
-  resume_score?: number;
-  notes?: string;
-  scraped_at: string;
-  last_checked: string;
-  job_state: string;
-  resume_score_stage: string;
-  is_interested: boolean | null;
-  customized_resume_id?: string | null;
-  resume_link?: string | null;
-}
-
-// --- Resume Related Interfaces ---
-
-export interface Education {
-  degree: string;
-  field_of_study: string | null;
-  institution: string;
-  start_year: string | null;
-  end_year: string | null;
-}
-
-export interface Experience {
-  job_title: string;
-  company: string;
-  location: string | null;
-  start_date: string | null;
-  end_date: string | null;
-  description: string | null;
-}
-
-export interface Project {
-  name: string;
-  description: string | null;
-  technologies: string[] | null;
-}
-
-export interface Certification {
-  name: string;
-  issuer: string | null;
-  year: string | null;
-}
-
-export interface Links {
-  linkedin: string | null;
-  github: string | null;
-  portfolio: string | null;
-}
-
-// Updated Resume Interface
-export interface Resume {
-  id: string; // Assuming this is the primary key for the resume table
-  name: string;
-  email: string;
-  created_at: string; // Keep this if it's the resume creation timestamp
-  phone: string;
-  location: string;
-  summary: string;
-  skills: Record<string, any>; // Keep generic or define more specific skill structure if known
-  education: Education[];
-  experience: Experience[];
-  projects: Project[];
-  certifications: Certification[];
-  languages: Record<string, any>[]; // Keep generic or define language structure if known
-  links: Links; // Changed to single object based on Python model
-  parsed_at: string;
-}
 
 // Helper function to handle Supabase response errors
 async function handleResponse({
@@ -228,4 +151,59 @@ export async function updateJobById(
     throw new Error(error.message);
   }
   return data as Job | null; // Cast to Job or null
+}
+
+/**
+ * Retrieves a specific customized resume by its ID.
+ * @param resume_id The ID of the customized resume to retrieve.
+ * @returns A promise that resolves to the Resume object or null if not found.
+ */
+export async function getCustomizedResumeById(
+  resume_id: string
+): Promise<Resume | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("customized_resumes") // Target the 'customized_resumes' table
+    .select("*")
+    .eq("id", resume_id) // Assuming 'id' is the primary key column
+    .single();
+
+  if (error && error.code !== "PGRST116") {
+    // PGRST116: Row not found, which is okay for single()
+    console.error("Supabase error fetching customized resume:", error);
+    throw new Error(error.message);
+  }
+  return data as Resume | null;
+}
+
+/**
+ * Updates specified fields of a customized resume by its ID.
+ * @param resume_id The ID of the customized resume to update.
+ * @param updates An object containing the fields to update.
+ * @returns A promise that resolves to the updated Resume object or null if not found.
+ */
+export async function updateCustomizedResumeById(
+  resume_id: string,
+  updates: Partial<Omit<Resume, "id" | "created_at" | "last_updated">> // Exclude system-managed fields from direct update via this function
+): Promise<Resume | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("customized_resumes") // Target the 'customized_resumes' table
+    .update(updates)
+    .eq("id", resume_id) // Assuming 'id' is the primary key column
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      // Row not found
+      console.warn(
+        `Customized resume with ID ${resume_id} not found for update.`
+      );
+      return null;
+    }
+    console.error("Supabase error updating customized resume:", error);
+    throw new Error(error.message);
+  }
+  return data as Resume | null;
 }
