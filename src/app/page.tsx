@@ -10,6 +10,8 @@ import {
   getNoCustomResumeJobsCount,
   getScoredWithOriginalResumeCount,
   getScoredWithCustomResumeCount,
+  getLinkedInJobsCount,
+  getCareersFutureJobsCount,
 } from "@/lib/supabase/queries";
 import {
   Briefcase,
@@ -23,6 +25,8 @@ import {
   FileX,
   FileUp,
   FileSignature,
+  Linkedin,
+  SquareKanban,
 } from "lucide-react";
 
 interface StatCardProps {
@@ -80,6 +84,8 @@ export default async function Home() {
   const scoredWithOriginalResumeCount =
     await getScoredWithOriginalResumeCount();
   const scoredWithCustomResumeCount = await getScoredWithCustomResumeCount();
+  const linkedInJobsCount = await getLinkedInJobsCount();
+  const careersFutureJobsCount = await getCareersFutureJobsCount();
 
   const stats = [
     {
@@ -161,6 +167,22 @@ export default async function Home() {
       href: "/jobs/new",
       description: "Active jobs without a custom resume.",
       color: "bg-rose-500",
+    },
+    {
+      title: "LinkedIn Jobs",
+      value: linkedInJobsCount,
+      icon: <Linkedin size={20} />,
+      href: "/jobs/new",
+      description: "Active LinkedIn jobs.",
+      color: "bg-cyan-500",
+    },
+    {
+      title: "CareersFuture Jobs",
+      value: careersFutureJobsCount,
+      icon: <SquareKanban size={20} />,
+      href: "/jobs/new",
+      description: "Active Careers Future jobs.",
+      color: "bg-teal-500",
     },
   ];
 

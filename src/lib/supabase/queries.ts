@@ -459,3 +459,45 @@ export async function getScoredWithCustomResumeCount(): Promise<number> {
   }
   return count ?? 0;
 }
+
+/**
+ * Gets the count of jobs from LinkedIn.
+ * Filters for active, new status, and new job_state jobs by default.
+ * @returns A promise that resolves to the number of LinkedIn jobs.
+ */
+export async function getLinkedInJobsCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .eq("provider", "linkedin")
+    .eq("is_active", true) // Consider if these filters are always needed
+    .eq("job_state", "new");
+
+  if (error) {
+    console.error("Supabase count error (LinkedIn jobs):", error);
+    throw new Error(error.message);
+  }
+  return count ?? 0;
+}
+
+/**
+ * Gets the count of jobs from Careers Future.
+ * Filters for active, new status, and new job_state jobs by default.
+ * @returns A promise that resolves to the number of Careers Future jobs.
+ */
+export async function getCareersFutureJobsCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .eq("provider", "careers_future")
+    .eq("is_active", true) // Consider if these filters are always needed
+    .eq("job_state", "new");
+
+  if (error) {
+    console.error("Supabase count error (Careers Future jobs):", error);
+    throw new Error(error.message);
+  }
+  return count ?? 0;
+}
