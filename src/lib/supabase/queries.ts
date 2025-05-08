@@ -64,6 +64,8 @@ export async function getTopScoredJobsCount(): Promise<number> {
     .from("jobs")
     .select("*", { count: "exact", head: true }) // Select count only
     .eq("is_active", true)
+    .eq("status", "new")
+    .eq("job_state", "new")
     .not("resume_score", "is", null); // Apply the same filters
 
   if (error) {
@@ -86,16 +88,45 @@ export async function getNewJobs(limit: number = 20): Promise<Job[]> {
   return handleResponse(response);
 }
 
-export async function getAppliedJobs(): Promise<Job[]> {
-  const appliedStatuses = ["applied", "interviewing", "offer"]; // Define statuses to fetch
+export async function getAppliedJobs(
+  page: number = 1,
+  pageSize: number = 10
+): Promise<Job[]> {
+  const appliedStatuses = ["applied", "interviewing", "offered  "]; // Define statuses to fetch
   const supabase = await createSupabaseServerClient();
+
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
   const response = await supabase
     .from("jobs")
     .select("*")
     .eq("is_active", true)
     .in("status", appliedStatuses) // Filter by relevant statuses
-    .order("application_date", { ascending: false }); // Or order by another relevant field
+    .eq("job_state", "new")
+    .order("application_date", { ascending: false }) // Or order by another relevant field
+    .range(from, to); // Added pagination
   return handleResponse(response);
+}
+
+// Function to get the count of applied jobs
+export async function getAppliedJobsCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const appliedStatuses = ["applied", "interviewing", "offer"]; // Define statuses to fetch
+
+  const { count, error } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true }) // Select count only
+    .eq("is_active", true)
+    .in("status", appliedStatuses) // Filter by relevant statuses
+    .eq("job_state", "new");
+
+  if (error) {
+    console.error("Supabase count error (applied jobs):", error);
+    throw new Error(error.message); // Or return 0, depending on desired behavior
+  }
+
+  return count ?? 0; // Return the count or 0 if null
 }
 
 export async function getJobById(job_id: string): Promise<Job | null> {
