@@ -23,6 +23,7 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
   const [thumbnails, setThumbnails] = useState<number[]>([]);
   const [showSidebar, setShowSidebar] = useState(true);
   const viewerRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
 
   const [effectiveFileUrl, setEffectiveFileUrl] = useState<string | null>(null);
 
@@ -108,6 +109,99 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
   const onClose = () => {
     router.back();
   };
+
+  // Download PDF function
+  const handleDownload = () => {
+    if (effectiveFileUrl) {
+      // Extract filename from URL or use a default name
+      let fileName = fileUrl.split("/").pop() || "document.pdf";
+
+      // Ensure the filename ends with .pdf (remove any existing extension first)
+      fileName = fileName.replace(/\.[^/.]+$/, "") + ".pdf";
+
+      // Fetch the PDF as a blob
+      fetch(effectiveFileUrl.split("?")[0])
+        .then((response) => response.blob())
+        .then((blob) => {
+          // Create a blob URL with explicit PDF MIME type
+          const pdfBlob = new Blob([blob], {
+            type: "application/pdf",
+          });
+
+          const blobUrl = window.URL.createObjectURL(pdfBlob);
+
+          // Create download link with forced PDF extension
+          const link = document.createElement("a");
+          link.href = blobUrl;
+          link.download = fileName;
+
+          // Set additional attributes to force download
+          link.setAttribute("type", "application/pdf");
+
+          // Trigger download
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          // Clean up
+          setTimeout(() => {
+            window.URL.revokeObjectURL(blobUrl);
+          }, 100);
+        })
+        .catch((error) => {
+          console.error("Error downloading PDF:", error);
+        });
+    }
+  };
+
+  // Handle scroll-based page navigation
+  useEffect(() => {
+    const handleScroll = (e: WheelEvent) => {
+      // Only handle scroll navigation if the page isn't tall enough to scroll
+      if (pageRef.current && viewerRef.current) {
+        const pageHeight = pageRef.current.scrollHeight; // Use scrollHeight instead of clientHeight
+        const viewerHeight = viewerRef.current.clientHeight;
+
+        // If the page is taller than the viewer (needs scrolling), check if we're at boundaries
+        const isAtTop = viewerRef.current.scrollTop === 0;
+        const isAtBottom =
+          viewerRef.current.scrollTop + viewerHeight >=
+          viewerRef.current.scrollHeight - 10;
+
+        // Only navigate pages if:
+        // 1. The page fits entirely in the viewer (no scrolling needed) OR
+        // 2. We're at the top/bottom of the scrollable area AND scrolling in that direction
+        if (
+          pageHeight <= viewerHeight || // Page fits entirely (no scrolling needed)
+          (e.deltaY > 0 && isAtBottom) || // Scrolling down at bottom
+          (e.deltaY < 0 && isAtTop) // Scrolling up at top
+        ) {
+          // Only prevent default and change pages if we're at a boundary
+          e.preventDefault();
+
+          // Scroll down - go to next page
+          if (e.deltaY > 0 && pageNumber < (numPages || 1)) {
+            goToPage(pageNumber + 1);
+          }
+          // Scroll up - go to previous page
+          else if (e.deltaY < 0 && pageNumber > 1) {
+            goToPage(pageNumber - 1);
+          }
+        }
+      }
+    };
+
+    const viewer = viewerRef.current;
+    if (viewer) {
+      viewer.addEventListener("wheel", handleScroll, { passive: false });
+    }
+
+    return () => {
+      if (viewer) {
+        viewer.removeEventListener("wheel", handleScroll);
+      }
+    };
+  }, [pageNumber, numPages]);
 
   // ESC key handler
   useEffect(() => {
@@ -314,6 +408,29 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
               </svg>
             </button>
           </div>
+
+          {/* Download button */}
+          <button
+            onClick={handleDownload}
+            disabled={!effectiveFileUrl || isLoading}
+            className="ml-4 p-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Download PDF"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
+            </svg>
+          </button>
         </div>
 
         <div className="flex items-center space-x-2">
@@ -423,18 +540,12 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
               className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-1 ${
                 isLoading && "flex justify-center items-center w-full" // This class applies during loading
               }`}
+              ref={pageRef}
             >
               <Document
                 file={effectiveFileUrl} // USE effectiveFileUrl
                 onLoadSuccess={onDocumentLoadSuccess}
                 onLoadError={onDocumentLoadError}
-                // Optional: loading prop for Document itself, if you want a spinner *inside* the Document area
-                // loading={
-                //   <div className="text-center p-10">
-                //     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600 mx-auto"></div>
-                //     <p className="mt-4 text-gray-600 dark:text-gray-300">Initializing PDF...</p>
-                //   </div>
-                // }
               >
                 {
                   isLoading && !pdfError ? ( // If still loading and no error, show spinner
