@@ -22,16 +22,6 @@ async function handleResponse({
 
 // --- Query Functions ---
 
-export async function getAllJobs(): Promise<Job[]> {
-  const supabase = await createSupabaseServerClient();
-  const response = await supabase
-    .from("jobs")
-    .select("*")
-    .eq("is_active", true)
-    .order("scraped_at", { ascending: false });
-  return handleResponse(response);
-}
-
 export async function getTopScoredJobs(
   page: number = 1, // Default to page 1
   pageSize: number = 10 // Default page size
@@ -76,16 +66,43 @@ export async function getTopScoredJobsCount(): Promise<number> {
   return count ?? 0; // Return the count or 0 if null
 }
 
-export async function getNewJobs(limit: number = 20): Promise<Job[]> {
+export async function getNewJobs(
+  page: number = 1,
+  pageSize: number = 10
+): Promise<Job[]> {
   const supabase = await createSupabaseServerClient();
+
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
   const response = await supabase
     .from("jobs")
     .select("*")
     .eq("is_active", true)
     .eq("status", "new") // Filter by status
+    .eq("job_state", "new")
     .order("scraped_at", { ascending: false })
-    .limit(limit);
+    .range(from, to); // Added pagination
   return handleResponse(response);
+}
+
+// Function to get the count of applied jobs
+export async function getAllActiveJobsCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+
+  const { count, error } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true }) // Select count only
+    .eq("is_active", true)
+    .eq("status", "new")
+    .eq("job_state", "new");
+
+  if (error) {
+    console.error("Supabase count error (applied jobs):", error);
+    throw new Error(error.message); // Or return 0, depending on desired behavior
+  }
+
+  return count ?? 0; // Return the count or 0 if null
 }
 
 export async function getAppliedJobs(
