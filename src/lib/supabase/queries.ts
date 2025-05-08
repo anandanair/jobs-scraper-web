@@ -56,7 +56,8 @@ export async function getTopScoredJobsCount(): Promise<number> {
     .eq("is_active", true)
     .eq("status", "new")
     .eq("job_state", "new")
-    .not("resume_score", "is", null); // Apply the same filters
+    // .not("resume_score", "is", null); // Apply the same filters
+    .gte("resume_score", 50);
 
   if (error) {
     console.error("Supabase count error:", error);
@@ -311,4 +312,150 @@ export async function uploadPersonalizedResume(
   }
 
   return { publicUrl: publicUrlData.publicUrl };
+}
+
+// --- New Count Functions ---
+
+/**
+ * Gets the count of expired jobs.
+ * @returns A promise that resolves to the number of expired jobs.
+ */
+export async function getExpiredJobsCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .eq("job_state", "expired");
+
+  if (error) {
+    console.error("Supabase count error (expired jobs):", error);
+    throw new Error(error.message);
+  }
+  return count ?? 0;
+}
+
+/**
+ * Gets the count of jobs pending to be scored (resume_score is null).
+ * @returns A promise that resolves to the number of jobs pending scoring.
+ */
+export async function getPendingScoreJobsCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .is("resume_score", null)
+    .eq("is_active", true) // Assuming we only count active jobs
+    .eq("status", "new") // And new jobs that haven't been processed beyond initial scraping
+    .eq("job_state", "new");
+
+  if (error) {
+    console.error("Supabase count error (pending score jobs):", error);
+    throw new Error(error.message);
+  }
+  return count ?? 0;
+}
+
+/**
+ * Gets the count of jobs that have already been scored (resume_score is not null).
+ * @returns A promise that resolves to the number of scored jobs.
+ */
+export async function getScoredJobsCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .not("resume_score", "is", null)
+    .eq("is_active", true)
+    .eq("status", "new")
+    .eq("job_state", "new");
+
+  if (error) {
+    console.error("Supabase count error (scored jobs):", error);
+    throw new Error(error.message);
+  }
+  return count ?? 0;
+}
+
+/**
+ * Gets the count of jobs which have a custom resume generated (customized_resume_id is not null).
+ * @returns A promise that resolves to the number of jobs with a custom resume.
+ */
+export async function getCustomResumeJobsCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .not("customized_resume_id", "is", null)
+    .eq("is_active", true); // Assuming active jobs
+
+  if (error) {
+    console.error("Supabase count error (custom resume jobs):", error);
+    throw new Error(error.message);
+  }
+  return count ?? 0;
+}
+
+/**
+ * Gets the count of jobs which have no custom resume (customized_resume_id is null).
+ * @returns A promise that resolves to the number of jobs without a custom resume.
+ */
+export async function getNoCustomResumeJobsCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .is("customized_resume_id", null)
+    .eq("is_active", true); // Assuming active jobs
+
+  if (error) {
+    console.error("Supabase count error (no custom resume jobs):", error);
+    throw new Error(error.message);
+  }
+  return count ?? 0;
+}
+
+/**
+ * Gets the count of scored jobs based on the original resume.
+ * (resume_score is not null AND resume_score_stage is "initial")
+ * @returns A promise that resolves to the number of jobs scored with the original resume.
+ */
+export async function getScoredWithOriginalResumeCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .not("resume_score", "is", null)
+    .eq("resume_score_stage", "initial")
+    .eq("is_active", true)
+    .eq("status", "new")
+    .eq("job_state", "new");
+
+  if (error) {
+    console.error("Supabase count error (scored with original resume):", error);
+    throw new Error(error.message);
+  }
+  return count ?? 0;
+}
+
+/**
+ * Gets the count of scored jobs based on a custom resume.
+ * (resume_score is not null AND resume_score_stage is "custom")
+ * @returns A promise that resolves to the number of jobs scored with a custom resume.
+ */
+export async function getScoredWithCustomResumeCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .not("resume_score", "is", null)
+    .eq("resume_score_stage", "custom")
+    .eq("is_active", true)
+    .eq("status", "new")
+    .eq("job_state", "new");
+
+  if (error) {
+    console.error("Supabase count error (scored with custom resume):", error);
+    throw new Error(error.message);
+  }
+  return count ?? 0;
 }
