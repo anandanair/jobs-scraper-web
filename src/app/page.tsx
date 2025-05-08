@@ -31,22 +31,38 @@ interface StatCardProps {
   icon: React.ReactNode;
   href: string;
   description: string;
+  color: string;
 }
 
-function StatCard({ title, value, icon, href, description }: StatCardProps) {
+function StatCard({
+  title,
+  value,
+  icon,
+  href,
+  description,
+  color,
+}: StatCardProps) {
   return (
-    <Link href={href} className="block p-1">
-      <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 ease-in-out h-full flex flex-col">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-            {title}
-          </h3>
-          <div className="text-indigo-500 bg-indigo-100 p-2 rounded-lg">
-            {icon}
+    <Link href={href} className="group transition-all duration-300 ease-in-out">
+      <div className="bg-white h-full rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md hover:border-gray-200 transition-all duration-300">
+        <div className={`h-1 ${color}`}></div>
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div
+              className={`${color.replace(
+                "bg-",
+                "text-"
+              )} bg-opacity-10 p-2.5 rounded-lg`}
+            >
+              {icon}
+            </div>
+            <span className="text-4xl font-bold text-gray-800">{value}</span>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-900 mb-1">{title}</h3>
+            <p className="text-xs text-gray-500 line-clamp-2">{description}</p>
           </div>
         </div>
-        <p className="text-4xl font-bold text-gray-800 mb-1">{value}</p>
-        <p className="text-xs text-gray-500 mt-auto">{description}</p>
       </div>
     </Link>
   );
@@ -58,9 +74,9 @@ export default async function Home() {
   const totalTopMatches = await getTopScoredJobsCount();
   const expiredJobsCount = await getExpiredJobsCount();
   const pendingScoreJobsCount = await getPendingScoreJobsCount();
-  const scoredJobsCount = await getScoredJobsCount(); // Total scored (new, job_state new)
-  const customResumeJobsCount = await getCustomResumeJobsCount(); // Has custom resume ID
-  const noCustomResumeJobsCount = await getNoCustomResumeJobsCount(); // No custom resume ID
+  const scoredJobsCount = await getScoredJobsCount();
+  const customResumeJobsCount = await getCustomResumeJobsCount();
+  const noCustomResumeJobsCount = await getNoCustomResumeJobsCount();
   const scoredWithOriginalResumeCount =
     await getScoredWithOriginalResumeCount();
   const scoredWithCustomResumeCount = await getScoredWithCustomResumeCount();
@@ -69,86 +85,104 @@ export default async function Home() {
     {
       title: "New Jobs",
       value: totalNewJobs,
-      icon: <Zap size={24} />,
+      icon: <Zap size={20} />,
       href: "/jobs/new",
       description: "Recently scraped job opportunities.",
+      color: "bg-indigo-500",
     },
     {
       title: "Applied Jobs",
       value: totalAppliedJobs,
-      icon: <CheckSquare size={24} />,
+      icon: <CheckSquare size={20} />,
       href: "/jobs/applied",
       description: "Jobs you have applied to.",
+      color: "bg-green-500",
     },
     {
       title: "Top Matches",
       value: totalTopMatches,
-      icon: <Star size={24} />,
+      icon: <Star size={20} />,
       href: "/jobs/top-matches",
       description: "Jobs that best match your profile.",
+      color: "bg-amber-500",
     },
     {
       title: "Expired Jobs",
       value: expiredJobsCount,
-      icon: <Archive size={24} />,
-      href: "/", // Or a relevant page if it exists
+      icon: <Archive size={20} />,
+      href: "/",
       description: "Jobs that are no longer active.",
+      color: "bg-gray-500",
     },
     {
       title: "Pending Scoring",
       value: pendingScoreJobsCount,
-      icon: <FileClock size={24} />,
-      href: "/jobs/new", // Likely new jobs that need scoring
+      icon: <FileClock size={20} />,
+      href: "/jobs/new",
       description: "Active new jobs awaiting resume score.",
+      color: "bg-sky-500",
     },
     {
-      title: "Scored Jobs (New)",
+      title: "Scored Jobs",
       value: scoredJobsCount,
-      icon: <FileCheck size={24} />,
-      href: "/jobs/top-matches", // Scored jobs are often top matches
+      icon: <FileCheck size={20} />,
+      href: "/jobs/top-matches",
       description: "Active new jobs that have a resume score.",
+      color: "bg-violet-500",
     },
     {
       title: "Scored (Original)",
       value: scoredWithOriginalResumeCount,
-      icon: <FileUp size={24} />,
+      icon: <FileUp size={20} />,
       href: "/jobs/top-matches",
       description: "Jobs scored using the original resume.",
+      color: "bg-blue-500",
     },
     {
       title: "Scored (Custom)",
       value: scoredWithCustomResumeCount,
-      icon: <FileSignature size={24} />,
+      icon: <FileSignature size={20} />,
       href: "/jobs/top-matches",
       description: "Jobs scored using a customized resume.",
+      color: "bg-purple-500",
     },
     {
       title: "Custom Resumes",
       value: customResumeJobsCount,
-      icon: <FileText size={24} />,
-      href: "/", // Or a page listing jobs with custom resumes
+      icon: <FileText size={20} />,
+      href: "/",
       description: "Jobs with a generated custom resume.",
+      color: "bg-emerald-500",
     },
     {
       title: "No Custom Resumes",
       value: noCustomResumeJobsCount,
-      icon: <FileX size={24} />,
-      href: "/jobs/new", // Likely new jobs that might need one
+      icon: <FileX size={20} />,
+      href: "/jobs/new",
       description: "Active jobs without a custom resume.",
+      color: "bg-rose-500",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-10">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <Briefcase className="w-8 h-8 mr-3 text-indigo-600" />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <header className="mb-12">
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <Briefcase className="w-8 h-8 text-indigo-600" />
             Job Application Dashboard
           </h1>
-          <p className="mt-2 text-lg text-gray-600">
-            Welcome back! Here's an overview of your job search.
-          </p>
+          <div className="mt-2 flex items-center text-gray-600">
+            <p className="text-lg">
+              Welcome back! Here's an overview of your job search.
+            </p>
+            <div className="ml-auto flex space-x-2 text-sm">
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800">
+                <span className="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>
+                Active Search
+              </span>
+            </div>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -160,6 +194,7 @@ export default async function Home() {
               icon={stat.icon}
               href={stat.href}
               description={stat.description}
+              color={stat.color}
             />
           ))}
         </div>
