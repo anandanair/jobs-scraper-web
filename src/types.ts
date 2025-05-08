@@ -18,6 +18,7 @@ export interface Job {
   is_interested: boolean | null;
   customized_resume_id?: string | null;
   resume_link?: string | null;
+  provider: string;
 }
 
 // --- Resume Related Interfaces ---

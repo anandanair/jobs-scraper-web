@@ -12,6 +12,7 @@ import {
   MapPinIcon,
   BarChart3Icon,
   FileText,
+  Link as SocialLink,
 } from "lucide-react";
 import MarkdownRenderer from "./MarkdownRenderer";
 import { Job } from "@/types";
@@ -210,6 +211,14 @@ export default function TopMatchesList({
                         <MapPinIcon className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
                         <span className="truncate">{job.location}</span>
                       </div>
+                      <div className="mt-1 flex items-center text-xs text-gray-400">
+                        <SocialLink className="h-3 w-3 mr-1 flex-shrink-0" />
+                        <span className="capitalize truncate">
+                          {job.provider === "careers_future"
+                            ? "MyCareersFuture"
+                            : "LinkedIn"}
+                        </span>
+                      </div>
                     </div>
 
                     {job.resume_score && (
@@ -281,6 +290,14 @@ export default function TopMatchesList({
                       <MapPinIcon className="h-4 w-4 mr-1.5 text-gray-500" />
                       <span>{selectedJob.location}</span>
                     </div>
+                    <div className="flex items-center">
+                      <SocialLink className="h-4 w-4 mr-1.5 text-gray-500" />
+                      <span className="capitalize truncate">
+                        {selectedJob.provider === "careers_future"
+                          ? "MyCareersFuture"
+                          : "LinkedIn"}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -309,15 +326,28 @@ export default function TopMatchesList({
 
               {/* Action buttons */}
               <div className="flex flex-wrap gap-3 mt-5">
-                <Link
-                  href={`https://www.linkedin.com/jobs/view/${selectedJob.job_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  View on LinkedIn
-                  <ExternalLink size={16} className="ml-2" />
-                </Link>
+                {(() => {
+                  // Determine the job listing URL based on the provider
+                  let jobUrl;
+                  if (selectedJob.provider === "careers_future") {
+                    jobUrl = `https://www.mycareersfuture.gov.sg/job/${selectedJob.job_id}`;
+                  } else {
+                    // Default to LinkedIn for "linkedin" provider or any other/undefined provider
+                    jobUrl = `https://www.linkedin.com/jobs/view/${selectedJob.job_id}`;
+                  }
+
+                  return (
+                    <Link
+                      href={jobUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      View Job Listing
+                      <ExternalLink size={16} className="ml-2" />
+                    </Link>
+                  );
+                })()}
 
                 {selectedJob.resume_link && (
                   <button
