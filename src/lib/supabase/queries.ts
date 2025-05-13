@@ -501,3 +501,71 @@ export async function getCareersFutureJobsCount(): Promise<number> {
   }
   return count ?? 0;
 }
+
+/**
+ * Gets all job providers from the job_providers table.
+ * @returns A promise that resolves to an array of job providers.
+ */
+export async function getAllJobProviders() {
+  const supabase = await createSupabaseServerClient();
+  const response = await supabase
+    .from("job_providers")
+    .select("*")
+    .order("name", { ascending: true });
+
+  return handleResponse(response);
+}
+
+/**
+ * Gets all LinkedIn locations from the linkedin_locations table.
+ * @returns A promise that resolves to an array of LinkedIn locations.
+ */
+export async function getAllLinkedInLocations() {
+  const supabase = await createSupabaseServerClient();
+  const response = await supabase
+    .from("linkedin_locations")
+    .select("*")
+    .order("location_name", { ascending: true });
+
+  return handleResponse(response);
+}
+
+/**
+ * Checks if the user has completed setting up at least one provider.
+ * @param userId Optional user ID. If not provided, will use the current authenticated user.
+ * @returns A promise that resolves to a boolean indicating if provider setup is complete.
+ */
+export async function isProviderSetupComplete(
+  userId?: string
+): Promise<boolean> {
+  const supabase = await createSupabaseServerClient();
+
+  // If userId is not provided, get the current user
+  if (!userId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error("No authenticated user found");
+    }
+    userId = user.id;
+  }
+
+  // Query provider_configs table for the user
+  const { data, error } = await supabase
+    .from("provider_configs")
+    .select("setup_completed")
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Supabase error (provider setup check):", error);
+    throw new Error(error.message);
+  }
+
+  // Check if at least one provider config has setup_completed = true
+  return (
+    data &&
+    data.length > 0 &&
+    data.some((config) => config.setup_completed === true)
+  );
+}

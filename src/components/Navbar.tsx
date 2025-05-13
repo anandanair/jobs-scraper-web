@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation"; // Import usePathname
+import { usePathname, useRouter } from "next/navigation"; // Import useRouter
 import {
   Briefcase,
   Home,
@@ -12,19 +12,18 @@ import {
   CheckSquare,
   Menu,
   X,
+  LogOut, // Import LogOut icon
 } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 
 // Improved with active state detection
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
-  // Remove useState and useEffect for activePath
-  // const [activePath, setActivePath] = useState<string>("");
-  const pathname = usePathname(); // Get the current pathname reactively
+  const pathname = usePathname();
+  const router = useRouter(); // Initialize router
 
-  // Update active path on client side - REMOVED
-  // useEffect(() => {
-  //   setActivePath(window.location.pathname);
-  // }, []);
+  // Initialize Supabase client
+  const supabase = createClient();
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -43,6 +42,19 @@ export default function Navbar() {
     { href: "/jobs/applied", icon: <CheckSquare size={18} />, text: "Applied" },
     { href: "/profile", icon: <User size={18} />, text: "Profile" },
   ];
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Error logging out:", error.message);
+      // Optionally, show an error message to the user
+    } else {
+      setIsMenuOpen(false); // Close mobile menu if open
+      // Redirect to login page. Using window.location.href for a full refresh
+      // can be more reliable for middleware to pick up the session change.
+      window.location.href = "/login";
+    }
+  };
 
   return (
     <header className="bg-white border-b border-gray-100 flex-shrink-0">
@@ -69,6 +81,15 @@ export default function Navbar() {
                 isActive={pathname === item.href} // Use pathname directly
               />
             ))}
+            {/* Desktop Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="px-3 py-2 rounded-md flex items-center text-sm font-medium text-gray-500 hover:text-red-600 transition-colors"
+              title="Logout"
+            >
+              <LogOut size={18} className="mr-1.5" />
+              <span>Logout</span>
+            </button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -94,8 +115,13 @@ export default function Navbar() {
         className={`md:hidden fixed inset-x-0 top-16 bg-white border-b border-gray-100 shadow-lg transform transition-transform duration-300 ease-in-out ${
           isMenuOpen ? "translate-y-0" : "-translate-y-full"
         }`}
+        // Add onClick to the backdrop to close menu, stop propagation on content
+        onClick={() => setIsMenuOpen(false)}
       >
-        <div className="container mx-auto px-4 py-2">
+        <div
+          className="container mx-auto px-4 py-2"
+          onClick={(e) => e.stopPropagation()}
+        >
           {navItems.map((item) => (
             <MobileNavItem
               key={item.href}
@@ -106,6 +132,14 @@ export default function Navbar() {
               onClick={() => setIsMenuOpen(false)}
             />
           ))}
+          {/* Mobile Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="w-full text-left py-4 px-2 flex items-center text-gray-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+          >
+            <LogOut size={18} className="mr-3" />
+            <span>Logout</span>
+          </button>
         </div>
       </div>
     </header>
