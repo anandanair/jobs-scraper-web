@@ -82,6 +82,7 @@ export async function getNewJobs(
     .eq("is_active", true)
     .eq("status", "new") // Filter by status
     .eq("job_state", "new")
+    .or("is_interested.is.null,is_interested.eq.true") // Select where is_interested is either null or true
     .order("scraped_at", { ascending: false })
     .range(from, to); // Added pagination
   return handleResponse(response);
@@ -145,6 +146,41 @@ export async function getAppliedJobsCount(): Promise<number> {
   }
 
   return count ?? 0; // Return the count or 0 if null
+}
+
+/**
+ * Gets the count of applied jobs on a specific date.
+ * @param dateThe date string in 'YYYY-MM-DD' format.
+ * @returns A promise that resolves to the number of jobs applied on that date.
+ */
+export async function getAppliedJobsCountByDate(date: string): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const appliedStatuses = ["applied", "interviewing", "offer"]; // Define statuses to fetch
+
+  // Create Date objects for the start of the given day and the start of the next day
+  // This assumes the input 'date' string is in 'YYYY-MM-DD' format and represents local time.
+  // Supabase will handle timezone conversions based on your 'application_date' column's timestamptz.
+  const startDate = new Date(date); // This will be YYYY-MM-DD 00:00:00 in the local timezone of the server running this code
+  startDate.setHours(0, 0, 0, 0);
+
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + 1); // This will be the start of the next day
+
+  const { count, error } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .eq("is_active", true)
+    .in("status", appliedStatuses)
+    .eq("job_state", "new")
+    .gte("application_date", startDate.toISOString()) // Greater than or equal to the start of the day
+    .lt("application_date", endDate.toISOString()); // Less than the start of the next day
+
+  if (error) {
+    console.error(`Supabase count error (applied jobs on ${date}):`, error);
+    throw new Error(error.message);
+  }
+
+  return count ?? 0;
 }
 
 export async function getJobById(job_id: string): Promise<Job | null> {
