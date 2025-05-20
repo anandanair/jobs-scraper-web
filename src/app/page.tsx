@@ -12,6 +12,7 @@ import {
   getScoredWithCustomResumeCount,
   getLinkedInJobsCount,
   getCareersFutureJobsCount,
+  getAppliedJobsCountByDate, // Added import
 } from "@/lib/supabase/queries";
 import {
   Briefcase,
@@ -27,6 +28,7 @@ import {
   FileSignature,
   Linkedin,
   SquareKanban,
+  CalendarCheck, // Added import for a new icon
 } from "lucide-react";
 
 interface StatCardProps {
@@ -87,6 +89,9 @@ export default async function Home() {
   const linkedInJobsCount = await getLinkedInJobsCount();
   const careersFutureJobsCount = await getCareersFutureJobsCount();
 
+  const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
+  const appliedTodayCount = await getAppliedJobsCountByDate(today);
+
   const stats = [
     {
       title: "New Jobs",
@@ -97,12 +102,24 @@ export default async function Home() {
       color: "bg-indigo-500",
     },
     {
-      title: "Applied Jobs",
+      title: "Applied Jobs (Total)", // Clarified title
       value: totalAppliedJobs,
       icon: <CheckSquare size={20} />,
       href: "/jobs/applied",
-      description: "Jobs you have applied to.",
+      description: "Total jobs you have applied to.",
       color: "bg-green-500",
+    },
+    {
+      title: "Applied Today", // New StatCard for jobs applied today
+      value: appliedTodayCount,
+      icon: <CalendarCheck size={20} />,
+      href: "/jobs/applied", // Or link to a filtered view if available
+      description: `Jobs applied on ${new Date().toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })}.`,
+      color: "bg-pink-500", // Using a new color for distinction
     },
     {
       title: "Top Matches",
