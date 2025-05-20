@@ -1,6 +1,6 @@
 # Job Scrapper Web
 
-Job Scrapper Web is a Next.js application designed to help you track and manage job applications, primarily those scraped from platforms like LinkedIn. It allows users to view new job listings, mark jobs as applied, see top matches based on resume scores, and manage customized resumes for different applications.
+Job Scrapper Web is a Next.js application designed to help you track and manage job applications scraped using [Job Scraper](https://github.com/anandanair/job-scraper). It allows users to view new job listings, mark jobs as applied, see top matches based on resume scores, and manage customized resumes for different applications.
 
 ## Features
 
@@ -40,7 +40,7 @@ Follow these instructions to get a copy of the project up and running on your lo
 
 **This frontend application relies on a separate backend for job scraping, scoring, resume generation, and database operations.**
 
-1.  **Backend Repository**: The backend service is located at [https://github.com/anandanair/linkedin-jobs-scrapper](https://github.com/anandanair/linkedin-jobs-scrapper).
+1.  **Backend Repository**: The backend service is located at [Job Scraper](https://github.com/anandanair/job-scraper).
 2.  **Fork and Setup**: You **MUST** first fork this backend repository and follow its setup instructions to get the database and backend services running.
 3.  **Database**: The backend setup will create and manage the database required by this frontend application.
 
@@ -50,7 +50,7 @@ Once the backend is successfully set up and running, you can proceed with settin
 
 - Node.js (v20 or later recommended)
 - npm or yarn
-- A running instance of the backend service from [https://github.com/anandanair/linkedin-jobs-scrapper](https://github.com/anandanair/linkedin-jobs-scrapper).
+- A running instance of the backend service from [Job Scraper](https://github.com/anandanair/job-scraper).
 
 ### Installation
 
