@@ -36,17 +36,28 @@ Job Scrapper Web is a Next.js application designed to help you track and manage 
 
 Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
 
+### Backend Setup (Crucial Prerequisite)
+
+**This frontend application relies on a separate backend for job scraping, scoring, resume generation, and database operations.**
+
+1.  **Backend Repository**: The backend service is located at [https://github.com/anandanair/linkedin-jobs-scrapper](https://github.com/anandanair/linkedin-jobs-scrapper).
+2.  **Fork and Setup**: You **MUST** first fork this backend repository and follow its setup instructions to get the database and backend services running.
+3.  **Database**: The backend setup will create and manage the database required by this frontend application.
+
+Once the backend is successfully set up and running, you can proceed with setting up this frontend application.
+
 ### Prerequisites
 
 - Node.js (v20 or later recommended)
 - npm or yarn
+- A running instance of the backend service from [https://github.com/anandanair/linkedin-jobs-scrapper](https://github.com/anandanair/linkedin-jobs-scrapper).
 
 ### Installation
 
 1.  **Clone the repository (if applicable):**
 
     ```bash
-    git clone <your-repository-url>
+    git clone https://github.com/anandanair/jobs-scrapper-web
     cd jobs-scrapper-web
     ```
 
@@ -63,17 +74,14 @@ Follow these instructions to get a copy of the project up and running on your lo
     ```env
     NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
     NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-    # For server-side operations, you might also need a service role key
-    # (Ensure this is handled securely and not exposed client-side if it's a service_role key)
     NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
     ```
-    _Note: The `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY` is used in `src/utils/supabase/server.ts`. While prefixed with `NEXT_PUBLIC_`, service role keys should typically be kept secret and used only server-side. Ensure your setup aligns with security best practices._
 
 ### Running the Development Server
 
 Once the dependencies are installed and environment variables are set up, you can run the development server:
 
-```
+```bash
 npm run dev
 # or
 # yarn dev
@@ -121,6 +129,6 @@ Here's a brief overview of the main directories:
 
 Contributions are welcome! Please follow the standard fork-and-pull-request workflow.
 
-(You can add more specific contribution guidelines if needed)
-
 ## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for more details.
