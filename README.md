@@ -1,36 +1,126 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Job Scrapper Web
+
+Job Scrapper Web is a Next.js application designed to help you track and manage job applications, primarily those scraped from platforms like LinkedIn. It allows users to view new job listings, mark jobs as applied, see top matches based on resume scores, and manage customized resumes for different applications.
+
+## Features
+
+- **Dashboard Overview**: View key statistics like new jobs, applied jobs, top matches, and more on the homepage.
+- **Job Listings**:
+  - **New Jobs**: Browse recently scraped job opportunities.
+  - **Applied Jobs**: Keep track of all jobs you've applied to.
+  - **Top Matches**: View jobs that best match your profile and resume score.
+- **Resume Management**:
+  - View and edit customized resumes.
+  - Upload and associate personalized resumes with job applications.
+  - PDF viewer for resumes.
+- **Job Details**: View detailed information for each job, including description and company details.
+- **Status Updates**: Mark jobs as "applied" or indicate interest level (interested/not interested).
+- **Pagination**: Efficiently navigate through large lists of jobs.
+- **Responsive Design**: User-friendly interface across various devices.
+- **Supabase Integration**: Utilizes Supabase for backend services and database management.
+
+## Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org/) (v15.3.1)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **UI Components**:
+  - [Lucide React](https://lucide.dev/) for icons
+  - [React PDF](https://github.com/wojtekmaj/react-pdf) for PDF viewing
+  - [React Markdown](https://github.com/remarkjs/react-markdown) for rendering markdown content
+- **Backend/Database**: [Supabase](https://supabase.io/)
+- **State Management**: React Hooks (useState, useEffect) and URL search params for component state.
+- **Linting**: ESLint (via `next lint`)
 
 ## Getting Started
 
-First, run the development server:
+Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
 
-```bash
+### Prerequisites
+
+- Node.js (v20 or later recommended)
+- npm or yarn
+
+### Installation
+
+1.  **Clone the repository (if applicable):**
+
+    ```bash
+    git clone <your-repository-url>
+    cd jobs-scrapper-web
+    ```
+
+2.  **Install dependencies:**
+
+    ```bash
+    npm install
+    # or
+    # yarn install
+    ```
+
+3.  **Set up environment variables:**
+    Create a `.env.local` file in the root of your project and add the necessary Supabase credentials:
+    ```env
+    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+    # For server-side operations, you might also need a service role key
+    # (Ensure this is handled securely and not exposed client-side if it's a service_role key)
+    NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+    ```
+    _Note: The `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY` is used in `src/utils/supabase/server.ts`. While prefixed with `NEXT_PUBLIC_`, service role keys should typically be kept secret and used only server-side. Ensure your setup aligns with security best practices._
+
+### Running the Development Server
+
+Once the dependencies are installed and environment variables are set up, you can run the development server:
+
+```
 npm run dev
 # or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# yarn dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Available Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+In the project directory, you can run:
 
-## Learn More
+- `npm run dev`: Runs the app in development mode.
+- `npm run build`: Builds the app for production.
+- `npm run start`: Starts the production server.
+- `npm run lint`: Lints the codebase using Next.js's built-in ESLint configuration.
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Here's a brief overview of the main directories:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `public/`: Contains static assets like images and the PDF worker.
+- `src/`: Contains the core application code.
+  - `src/app/`: Next.js App Router directory.
+    - `api/`: API route handlers.
+    - `jobs/`: Routes related to job listings (new, applied, top-matches, individual job details, resume views/edits).
+    - `profile/`: User profile page (structure suggests this, content not fully reviewed).
+    - `layout.tsx`: Root layout for the application.
+    - `page.tsx`: Homepage/dashboard.
+    - `globals.css`: Global styles and Tailwind CSS setup.
+  - `src/components/`: Reusable React components.
+    - `jobs/`: Components specific to job listings and details.
+    - `resume/`: Components for resume viewing and editing.
+    - `CustomPdfViewer.tsx`: Component for displaying PDF files.
+    - `Navbar.tsx`: Application navigation bar.
+  - `src/lib/`:
+    - `supabase/queries.ts`: Functions for interacting with the Supabase database.
+  - `src/types.ts`: TypeScript type definitions for the application.
+  - `src/utils/`:
+    - `supabase/server.ts`: Supabase server client setup.
+- `next.config.ts`: Next.js configuration file.
+- `package.json`: Lists project dependencies and scripts.
+- `tsconfig.json`: TypeScript configuration.
 
-## Deploy on Vercel
+## Contributing
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Contributions are welcome! Please follow the standard fork-and-pull-request workflow.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+(You can add more specific contribution guidelines if needed)
+
+## License
