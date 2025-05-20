@@ -153,30 +153,47 @@ export async function getAppliedJobsCount(): Promise<number> {
  * @param dateThe date string in 'YYYY-MM-DD' format.
  * @returns A promise that resolves to the number of jobs applied on that date.
  */
-export async function getAppliedJobsCountByDate(date: string): Promise<number> {
+export async function getAppliedJobsCountByDate(
+  localDateString: string
+): Promise<number> {
+  // localDateString is "YYYY-MM-DD", e.g., "2025-05-21" from server's local TZ
   const supabase = await createSupabaseServerClient();
-  const appliedStatuses = ["applied", "interviewing", "offer"]; // Define statuses to fetch
+  const appliedStatuses = ["applied", "interviewing", "offer"];
 
-  // Create Date objects for the start of the given day and the start of the next day
-  // This assumes the input 'date' string is in 'YYYY-MM-DD' format and represents local time.
-  // Supabase will handle timezone conversions based on your 'application_date' column's timestamptz.
-  const startDate = new Date(date); // This will be YYYY-MM-DD 00:00:00 in the local timezone of the server running this code
-  startDate.setHours(0, 0, 0, 0);
+  // Create a Date object representing the start of the local day (00:00:00 local time)
+  // For "2025-05-21", this will be 2025-05-21T00:00:00 in the server's local timezone.
+  const startOfLocalDay = new Date(localDateString);
 
-  const endDate = new Date(startDate);
-  endDate.setDate(startDate.getDate() + 1); // This will be the start of the next day
+  // Convert the start of the local day to a UTC ISO string for the query
+  const startOfDayUTCForQuery = startOfLocalDay.toISOString();
+
+  // Create a Date object for the end of the local day
+  // Start with the beginning of the local day again
+  const endOfLocalDay = new Date(localDateString);
+  // Advance it by one full day to get the start of the *next* local day
+  endOfLocalDay.setDate(startOfLocalDay.getDate() + 1);
+
+  // Convert the start of the next local day to a UTC ISO string for the query boundary
+  const startOfNextDayUTCForQuery = endOfLocalDay.toISOString();
+
+  // For debugging:
+  // console.log(`Querying for applications on local date: ${localDateString}`);
+  // console.log(`UTC Range: >= ${startOfDayUTCForQuery} and < ${startOfNextDayUTCForQuery}`);
 
   const { count, error } = await supabase
     .from("jobs")
     .select("*", { count: "exact", head: true })
     .eq("is_active", true)
     .in("status", appliedStatuses)
-    .eq("job_state", "new")
-    .gte("application_date", startDate.toISOString()) // Greater than or equal to the start of the day
-    .lt("application_date", endDate.toISOString()); // Less than the start of the next day
+    .eq("job_state", "new") // Retained this filter if it's still relevant
+    .gte("application_date", startOfDayUTCForQuery) // Greater than or equal to the start of the local day (in UTC)
+    .lt("application_date", startOfNextDayUTCForQuery); // Less than the start of the next local day (in UTC)
 
   if (error) {
-    console.error(`Supabase count error (applied jobs on ${date}):`, error);
+    console.error(
+      `Supabase count error (applied jobs on local date ${localDateString}):`,
+      error
+    );
     throw new Error(error.message);
   }
 

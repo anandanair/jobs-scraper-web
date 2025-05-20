@@ -89,8 +89,20 @@ export default async function Home() {
   const linkedInJobsCount = await getLinkedInJobsCount();
   const careersFutureJobsCount = await getCareersFutureJobsCount();
 
-  const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
-  const appliedTodayCount = await getAppliedJobsCountByDate(today);
+  // Get server's current local date in YYYY-MM-DD format
+  const now = new Date(); // Current date/time in server's local timezone
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0'); // getMonth() is 0-indexed
+  const day = now.getDate().toString().padStart(2, '0');
+  const localToday = `${year}-${month}-${day}`; // e.g., "2025-05-21"
+
+  console.log("Server's Local Date for Query:", localToday);
+  // Pass the server's local date to the query function
+  const appliedTodayCount = await getAppliedJobsCountByDate(localToday);
+
+  // Create a Date object from the localToday string for formatting the description.
+  // new Date(localToday) will parse it as midnight in the server's local timezone.
+  const dateForAppliedTodayDescription = new Date(localToday);
 
   const stats = [
     {
@@ -114,11 +126,15 @@ export default async function Home() {
       value: appliedTodayCount,
       icon: <CalendarCheck size={20} />,
       href: "/jobs/applied", // Or link to a filtered view if available
-      description: `Jobs applied on ${new Date().toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })}.`,
+      description: `Jobs applied on ${dateForAppliedTodayDescription.toLocaleDateString(
+        "en-US",
+        {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+          // No timeZone option, so it uses the server's local timezone for formatting
+        }
+      )}.`,
       color: "bg-pink-500", // Using a new color for distinction
     },
     {
