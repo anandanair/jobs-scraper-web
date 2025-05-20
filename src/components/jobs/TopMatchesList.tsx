@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Added useEffect
 import Link from "next/link";
 import PaginationControls from "./PaginationControls";
 import {
@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import MarkdownRenderer from "./MarkdownRenderer";
 import { Job } from "@/types";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation"; // Added useSearchParams
 
 interface TopMatchesListProps {
   jobs: Job[];
@@ -29,22 +29,60 @@ export default function TopMatchesList({
   currentPage,
   totalPages,
 }: TopMatchesListProps) {
-  const [selectedJob, setSelectedJob] = useState<Job | null>(
-    jobs.length > 0 ? jobs[0] : null
-  );
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null); // Initialize as null
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingInterest, setIsUpdatingInterest] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams(); // Get searchParams
+
+  useEffect(() => {
+    const selectedJobIdFromUrl = searchParams.get("selectedJobId");
+    let jobToSelect: Job | null = null;
+
+    if (selectedJobIdFromUrl) {
+      // Try to find the job from the URL ID in the *current* jobs list
+      jobToSelect =
+        jobs.find((job) => job.job_id === selectedJobIdFromUrl) || null;
+    }
+
+    // If job from URL ID is not found (jobToSelect is null) or no ID in URL,
+    // and there are jobs in the list, default to the first job.
+    if (!jobToSelect && jobs.length > 0) {
+      jobToSelect = jobs[0];
+    }
+    // If jobs list is empty, ensure jobToSelect is null.
+    else if (jobs.length === 0) {
+      jobToSelect = null;
+    }
+
+    // Update state only if the selected job (by ID) is different,
+    // or if jobToSelect is null and selectedJob is not (or vice-versa).
+    if (selectedJob?.job_id !== jobToSelect?.job_id) {
+      setSelectedJob(jobToSelect);
+    }
+  }, [jobs, searchParams]); // Dependencies are jobs and searchParams
 
   const handleViewResume = (
     job_id: string,
     resume_id: string | null | undefined
   ) => {
-    router.push(`/jobs/${job_id}/resumes/${resume_id}`);
+    // Preserve current page and selected job when navigating away
+    const params = new URLSearchParams(searchParams.toString());
+    if (selectedJob) {
+      params.set("selectedJobId", selectedJob.job_id);
+    }
+    router.push(`/jobs/${job_id}/resumes/${resume_id}?${params.toString()}`);
   };
 
   const handleJobSelect = (job: Job) => {
     setSelectedJob(job);
+    // Update URL with selected job ID without adding to history
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("selectedJobId", job.job_id);
+    // Use replace to avoid polluting browser history for selections on the same page
+    router.replace(`${window.location.pathname}?${params.toString()}`, {
+      scroll: false,
+    });
   };
 
   const handleMarkAsApplied = async () => {
@@ -77,6 +115,7 @@ export default function TopMatchesList({
       setSelectedJob(updatedJob);
       // Toast notification instead of alert
       showToast("Job marked as applied successfully!", "success");
+      router.refresh(); // Refresh the page to show updated jobs
     } catch (error) {
       console.error("Error marking job as applied:", error);
       const message =
@@ -131,6 +170,7 @@ export default function TopMatchesList({
           ? "Marked as not interested"
           : "Interest status cleared";
       showToast(message, "success");
+      router.refresh(); // Refresh the page to show updated jobs
     } catch (error) {
       console.error("Error updating job interest:", error);
       const message =
