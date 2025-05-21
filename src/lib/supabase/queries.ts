@@ -111,27 +111,31 @@ export async function getAppliedJobs(
   page: number = 1,
   pageSize: number = 10
 ): Promise<Job[]> {
-  const appliedStatuses = ["applied", "interviewing", "offered  "]; // Define statuses to fetch
+  // const appliedStatuses = ["applied", "interviewing", "offered  "]; // This is no longer directly used here
   const supabase = await createSupabaseServerClient();
 
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
+  // Call the RPC function
+  const rpcParams = {
+    p_page_number: page,
+    p_page_size: pageSize,
+  };
 
-  const response = await supabase
-    .from("jobs")
-    .select("*")
-    .eq("is_active", true)
-    .in("status", appliedStatuses) // Filter by relevant statuses
-    .eq("job_state", "new")
-    .order("application_date", { ascending: false }) // Or order by another relevant field
-    .range(from, to); // Added pagination
-  return handleResponse(response);
+  const response = await supabase.rpc(
+    "get_applied_jobs_sorted", // Name of your RPC function
+    rpcParams
+  );
+
+  // The existing handleResponse function can be used
+  const data = await handleResponse(response);
+  return data ?? []; // Return empty array if data is null/undefined
 }
 
 // Function to get the count of applied jobs
 export async function getAppliedJobsCount(): Promise<number> {
   const supabase = await createSupabaseServerClient();
-  const appliedStatuses = ["applied", "interviewing", "offer"]; // Define statuses to fetch
+  // IMPORTANT: Ensure these statuses match those in your RPC and database
+  // Suggestion: Standardize to ['applied', 'interviewing', 'offered'] if 'offered' is correct
+  const appliedStatuses = ["applied", "interviewing", "offer"];
 
   const { count, error } = await supabase
     .from("jobs")
