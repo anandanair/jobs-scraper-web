@@ -15,6 +15,7 @@ import {
   FileText,
   Briefcase,
   ChevronRight,
+  Info, // <-- Add Info icon
 } from "lucide-react";
 import { Job } from "@/types";
 import { useRouter } from "next/navigation";
@@ -203,12 +204,23 @@ export default function AppliedJobsList({
                   {/* Left side actions */}
                   <div className="flex flex-wrap gap-2">
                     <Link
-                      href={`https://www.linkedin.com/jobs/view/${job.job_id}`}
+                      href={`/jobs/${job.job_id}`} // <-- Changed: Link to job details page
+                      className="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-50 transition-colors"
+                    >
+                      <Info size={14} className="mr-1.5" /> {/* <-- Add Icon */}
+                      View Details
+                    </Link>
+                    <Link
+                      href={
+                        job.provider === "careers_future"
+                          ? `https://www.mycareersfuture.gov.sg/job/${job.job_id}`
+                          : `https://www.linkedin.com/jobs/view/${job.job_id}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-50 transition-colors"
                     >
-                      View Job
+                      View Job Posting {/* <-- Changed text for clarity */}
                       <ExternalLink size={14} className="ml-1.5" />
                     </Link>
 
