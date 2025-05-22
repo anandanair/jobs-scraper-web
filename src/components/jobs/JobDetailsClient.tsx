@@ -22,7 +22,9 @@ interface JobDetailsClientProps {
   initialJob: Job;
 }
 
-export default function JobDetailsClient({ initialJob }: JobDetailsClientProps) {
+export default function JobDetailsClient({
+  initialJob,
+}: JobDetailsClientProps) {
   const [job, setJob] = useState<Job>(initialJob);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingInterest, setIsUpdatingInterest] = useState(false);
@@ -151,7 +153,9 @@ export default function JobDetailsClient({ initialJob }: JobDetailsClientProps) 
       <div className="bg-gray-50 border-b border-gray-200 p-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{job.job_title}</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {job.job_title}
+            </h1>
             <div className="mt-3 flex flex-col sm:flex-row sm:items-center text-gray-600 space-y-2 sm:space-y-0 sm:space-x-6">
               <div className="flex items-center">
                 <BuildingIcon className="h-5 w-5 mr-2 text-gray-500" />
@@ -206,7 +210,7 @@ export default function JobDetailsClient({ initialJob }: JobDetailsClientProps) 
             <ExternalLink size={16} className="ml-2" />
           </Link>
 
-          {job.resume_link && job.customized_resume_id && (
+          {job.customized_resumes?.resume_link && job.customized_resume_id && (
             <button
               onClick={() =>
                 handleViewResume(job.job_id, job.customized_resume_id)

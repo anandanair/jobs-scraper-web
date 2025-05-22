@@ -17,6 +17,7 @@ export interface Job {
   resume_score_stage: string;
   is_interested: boolean | null;
   customized_resume_id?: string | null;
+  customized_resumes?: Resume | null;
   resume_link?: string | null;
   provider: string;
 }

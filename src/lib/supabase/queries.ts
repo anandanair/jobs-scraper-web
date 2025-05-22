@@ -111,7 +111,7 @@ export async function getAppliedJobs(
   page: number = 1,
   pageSize: number = 10
 ): Promise<Job[]> {
-  // const appliedStatuses = ["applied", "interviewing", "offered  "]; // This is no longer directly used here
+  // const appliedStatuses = ["applied", "interviewing", "offered"]; // This is no longer directly used here
   const supabase = await createSupabaseServerClient();
 
   // Call the RPC function
@@ -208,7 +208,7 @@ export async function getJobById(job_id: string): Promise<Job | null> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("jobs")
-    .select("*")
+    .select("*, customized_resumes(resume_link)") // Fetches all job fields and the resume_link from the related customized_resume
     .eq("job_id", job_id)
     .single(); // Use single() if you expect only one or zero results
 
@@ -217,7 +217,10 @@ export async function getJobById(job_id: string): Promise<Job | null> {
     console.error("Supabase response error:", error);
     throw new Error(error.message);
   }
-  return data;
+  // The 'data' object will now potentially include a 'customized_resumes' field:
+  // e.g., { ..., customized_resume_id: 'xyz', customized_resumes: { resume_link: '...' } }
+  // or { ..., customized_resume_id: null, customized_resumes: null }
+  return data as Job | null; // Ensure your Job type definition accommodates this structure
 }
 
 export async function getUserResume(): Promise<Resume | null> {
