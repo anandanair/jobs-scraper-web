@@ -29,30 +29,25 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
 
   useEffect(() => {
     if (fileUrl) {
-      // Generate a new URL with timestamp when fileUrl changes or on initial mount
       const urlWithTimestamp = `${fileUrl}?t=${Date.now()}`;
       setEffectiveFileUrl(urlWithTimestamp);
-
-      // Reset states for the new PDF
       setIsLoading(true);
       setNumPages(null);
-      setPageNumber(1); // Go to first page for new/reloaded PDF
+      setPageNumber(1);
       setPdfError(null);
-      setThumbnails([]); // Clear old thumbnails
+      setThumbnails([]);
     } else {
-      setEffectiveFileUrl(null); // Handle cases where fileUrl might be initially null/undefined
-      setIsLoading(false); // Not loading if no URL
+      setEffectiveFileUrl(null);
+      setIsLoading(false);
     }
-  }, [fileUrl]); // Re-run ONLY when the fileUrl prop changes (and on initial mount)
+  }, [fileUrl]);
 
-  // Generate thumbnail array when numPages is set
   useEffect(() => {
     if (numPages) {
       setThumbnails(Array.from({ length: numPages }, (_, i) => i + 1));
     }
   }, [numPages]);
 
-  // Debug log to track loading state
   useEffect(() => {
     console.log("PDF loading state:", {
       isLoading,
@@ -79,12 +74,11 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
       `Failed to load PDF document. Please ensure the link is correct and the file is accessible. ${error.message}`
     );
     setIsLoading(false);
-    setNumPages(null); // Clear numPages on error
+    setNumPages(null);
   }, []);
 
   const goToPage = (page: number) => {
     setPageNumber(page);
-    // Smooth scroll to the top of the viewer when changing pages
     if (viewerRef.current) {
       viewerRef.current.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -110,40 +104,28 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
     router.back();
   };
 
-  // Download PDF function
   const handleDownload = () => {
     if (effectiveFileUrl) {
-      // Extract filename from URL or use a default name
       let fileName = fileUrl.split("/").pop() || "document.pdf";
-
-      // Ensure the filename ends with .pdf (remove any existing extension first)
       fileName = fileName.replace(/\.[^/.]+$/, "") + ".pdf";
 
-      // Fetch the PDF as a blob
       fetch(effectiveFileUrl.split("?")[0])
         .then((response) => response.blob())
         .then((blob) => {
-          // Create a blob URL with explicit PDF MIME type
           const pdfBlob = new Blob([blob], {
             type: "application/pdf",
           });
 
           const blobUrl = window.URL.createObjectURL(pdfBlob);
-
-          // Create download link with forced PDF extension
           const link = document.createElement("a");
           link.href = blobUrl;
           link.download = fileName;
-
-          // Set additional attributes to force download
           link.setAttribute("type", "application/pdf");
 
-          // Trigger download
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
 
-          // Clean up
           setTimeout(() => {
             window.URL.revokeObjectURL(blobUrl);
           }, 100);
@@ -154,37 +136,27 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
     }
   };
 
-  // Handle scroll-based page navigation
   useEffect(() => {
     const handleScroll = (e: WheelEvent) => {
-      // Only handle scroll navigation if the page isn't tall enough to scroll
       if (pageRef.current && viewerRef.current) {
-        const pageHeight = pageRef.current.scrollHeight; // Use scrollHeight instead of clientHeight
+        const pageHeight = pageRef.current.scrollHeight;
         const viewerHeight = viewerRef.current.clientHeight;
 
-        // If the page is taller than the viewer (needs scrolling), check if we're at boundaries
         const isAtTop = viewerRef.current.scrollTop === 0;
         const isAtBottom =
           viewerRef.current.scrollTop + viewerHeight >=
           viewerRef.current.scrollHeight - 10;
 
-        // Only navigate pages if:
-        // 1. The page fits entirely in the viewer (no scrolling needed) OR
-        // 2. We're at the top/bottom of the scrollable area AND scrolling in that direction
         if (
-          pageHeight <= viewerHeight || // Page fits entirely (no scrolling needed)
-          (e.deltaY > 0 && isAtBottom) || // Scrolling down at bottom
-          (e.deltaY < 0 && isAtTop) // Scrolling up at top
+          pageHeight <= viewerHeight ||
+          (e.deltaY > 0 && isAtBottom) ||
+          (e.deltaY < 0 && isAtTop)
         ) {
-          // Only prevent default and change pages if we're at a boundary
           e.preventDefault();
 
-          // Scroll down - go to next page
           if (e.deltaY > 0 && pageNumber < (numPages || 1)) {
             goToPage(pageNumber + 1);
-          }
-          // Scroll up - go to previous page
-          else if (e.deltaY < 0 && pageNumber > 1) {
+          } else if (e.deltaY < 0 && pageNumber > 1) {
             goToPage(pageNumber - 1);
           }
         }
@@ -203,7 +175,6 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
     };
   }, [pageNumber, numPages]);
 
-  // ESC key handler
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -216,15 +187,31 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
     };
   }, [onClose]);
 
-  // Initial check if the base fileUrl is provided
   if (!fileUrl) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
-        <div className="bg-white p-6 rounded-lg shadow-xl text-center">
-          <p className="text-red-600">No PDF file URL provided.</p>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border border-white/20 text-center max-w-md">
+          <div className="w-12 h-12 mx-auto mb-4 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+            <svg
+              className="w-6 h-6 text-red-600 dark:text-red-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <p className="text-red-600 dark:text-red-400 font-medium">
+            No PDF file URL provided.
+          </p>
           <button
             onClick={onClose}
-            className="mt-4 px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+            className="mt-6 px-6 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all duration-200 font-medium"
           >
             Close
           </button>
@@ -233,31 +220,44 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
     );
   }
 
-  // Now, ensure effectiveFileUrl is ready before rendering the Document components
   if (!effectiveFileUrl && isLoading) {
-    // Show a general loading indicator if effectiveFileUrl is not yet set
-    // (e.g. fileUrl was just provided and useEffect is about to run)
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600"></div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-300 font-medium">
+            Loading PDF...
+          </p>
+        </div>
       </div>
     );
   }
 
   if (!effectiveFileUrl && !isLoading) {
-    // This case might happen if fileUrl was initially null and then provided,
-    // but something went wrong, or if fileUrl is an empty string.
-    // Or, if fileUrl was valid, then became invalid.
-    // Essentially, if we're not loading and don't have a URL to use.
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
-        <div className="bg-white p-6 rounded-lg shadow-xl text-center">
-          <p className="text-red-600">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border border-white/20 text-center max-w-md">
+          <div className="w-12 h-12 mx-auto mb-4 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+            <svg
+              className="w-6 h-6 text-red-600 dark:text-red-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <p className="text-red-600 dark:text-red-400 font-medium">
             PDF URL is invalid or could not be processed.
           </p>
           <button
             onClick={onClose}
-            className="mt-4 px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+            className="mt-6 px-6 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all duration-200 font-medium"
           >
             Close
           </button>
@@ -267,232 +267,232 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-gray-100 dark:bg-gray-900">
-      {/* Top toolbar */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-2 px-4 flex justify-between items-center shadow-sm">
-        <div className="flex items-center space-x-2">
-          {/* Sidebar toggle */}
-          <button
-            onClick={() => setShowSidebar(!showSidebar)}
-            className="p-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-
-          {/* Page navigation */}
-          <div className="flex items-center space-x-1">
+    <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      {/* Modern Top Toolbar */}
+      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/50 py-3 px-6 shadow-lg">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            {/* Sidebar Toggle */}
             <button
-              onClick={() => goToPage(Math.max(1, pageNumber - 1))}
-              disabled={pageNumber <= 1 || isLoading}
-              className="p-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="p-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 rounded-xl transition-all duration-200 backdrop-blur-sm"
             >
               <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
+                className="w-5 h-5"
                 fill="none"
-                viewBox="0 0 24 24"
                 stroke="currentColor"
+                viewBox="0 0 24 24"
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
+                  d="M4 6h16M4 12h16M4 18h16"
                 />
               </svg>
             </button>
 
-            <div className="flex items-center min-w-[100px]">
-              <input
-                type="number"
-                min={1}
-                max={numPages || 1}
-                value={pageNumber}
-                onChange={(e) => {
-                  const page = parseInt(e.target.value);
-                  if (page && page >= 1 && page <= (numPages || 1)) {
-                    goToPage(page);
-                  }
-                }}
-                className="w-12 p-1 text-center border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-gray-200"
-              />
-              <span className="mx-1 text-gray-700 dark:text-gray-200">of</span>
-              <span className="text-gray-700 dark:text-gray-200">
-                {numPages || "--"}
-              </span>
+            {/* Page Navigation */}
+            <div className="flex items-center space-x-2 bg-gray-100/50 dark:bg-gray-700/30 rounded-xl px-3 py-2 backdrop-blur-sm">
+              <button
+                onClick={() => goToPage(Math.max(1, pageNumber - 1))}
+                disabled={pageNumber <= 1 || isLoading}
+                className="p-1.5 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-600/50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+
+              <div className="flex items-center min-w-[120px] justify-center">
+                <input
+                  type="number"
+                  min={1}
+                  max={numPages || 1}
+                  value={pageNumber}
+                  onChange={(e) => {
+                    const page = parseInt(e.target.value);
+                    if (page && page >= 1 && page <= (numPages || 1)) {
+                      goToPage(page);
+                    }
+                  }}
+                  className="w-12 p-1 text-center border-0 bg-white/80 dark:bg-gray-600/50 rounded-lg text-sm font-medium text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:outline-none backdrop-blur-sm"
+                />
+                <span className="mx-2 text-sm text-gray-600 dark:text-gray-300 font-medium">
+                  of
+                </span>
+                <span className="text-sm text-gray-900 dark:text-gray-100 font-medium">
+                  {numPages || "--"}
+                </span>
+              </div>
+
+              <button
+                onClick={() =>
+                  goToPage(Math.min(numPages || 1, pageNumber + 1))
+                }
+                disabled={pageNumber >= (numPages || 0) || isLoading}
+                className="p-1.5 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-600/50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
             </div>
 
+            {/* Zoom Controls */}
+            <div className="flex items-center space-x-1 bg-gray-100/50 dark:bg-gray-700/30 rounded-xl px-3 py-2 backdrop-blur-sm">
+              <button
+                onClick={zoomOut}
+                disabled={scale <= 0.5}
+                className="p-1.5 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-600/50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M20 12H4"
+                  />
+                </svg>
+              </button>
+
+              <button
+                onClick={resetZoom}
+                className="px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-600/50 rounded-lg transition-all duration-200 min-w-[50px]"
+              >
+                {Math.round(scale * 100)}%
+              </button>
+
+              <button
+                onClick={zoomIn}
+                disabled={scale >= 3}
+                className="p-1.5 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-600/50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Download Button */}
             <button
-              onClick={() => goToPage(Math.min(numPages || 1, pageNumber + 1))}
-              disabled={pageNumber >= (numPages || 0) || isLoading}
-              className="p-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleDownload}
+              disabled={!effectiveFileUrl || isLoading}
+              className="p-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Download PDF"
             >
               <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
+                className="w-5 h-5"
                 fill="none"
-                viewBox="0 0 24 24"
                 stroke="currentColor"
+                viewBox="0 0 24 24"
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M9 5l7 7-7 7"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                 />
               </svg>
             </button>
           </div>
 
-          {/* Zoom controls */}
-          <div className="flex items-center space-x-1 ml-4">
+          <div className="flex items-center space-x-3">
             <button
-              onClick={zoomOut}
-              disabled={scale <= 0.5}
-              className="p-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleEditClick}
+              className="px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl backdrop-blur-sm"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M20 12H4"
-                />
-              </svg>
+              Edit
             </button>
 
             <button
-              onClick={resetZoom}
-              className="px-2 py-1 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+              onClick={onClose}
+              className="px-5 py-2 bg-gray-200/80 dark:bg-gray-700/50 text-gray-800 dark:text-gray-200 rounded-xl hover:bg-gray-300/80 dark:hover:bg-gray-600/50 transition-all duration-200 font-medium backdrop-blur-sm"
             >
-              {Math.round(scale * 100)}%
-            </button>
-
-            <button
-              onClick={zoomIn}
-              disabled={scale >= 3}
-              className="p-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
+              Close
             </button>
           </div>
-
-          {/* Download button */}
-          <button
-            onClick={handleDownload}
-            disabled={!effectiveFileUrl || isLoading}
-            className="ml-4 p-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Download PDF"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
-          </button>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={handleEditClick}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Edit
-          </button>
-
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-          >
-            Close
-          </button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
+        {/* Modern Sidebar */}
         {showSidebar && (
-          <div className="w-48 lg:w-56 flex-shrink-0 overflow-y-auto bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
-            {/* Show spinner for thumbnails if main doc is loading, or if no pages yet and no error */}
+          <div className="w-56 lg:w-64 flex-shrink-0 overflow-y-auto bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-r border-white/20 dark:border-gray-700/50 shadow-xl">
             {(isLoading || (!numPages && !pdfError)) && effectiveFileUrl ? (
-              <div className="flex items-center justify-center h-24">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
+              <div className="flex items-center justify-center h-32">
+                <div className="w-8 h-8 border-3 border-blue-200 dark:border-blue-800 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
               </div>
             ) : pdfError ? (
-              <div className="p-4 text-xs text-red-500 text-center">
+              <div className="p-4 text-xs text-red-500 dark:text-red-400 text-center">
                 Error loading thumbnails.
               </div>
             ) : (
               numPages &&
               effectiveFileUrl &&
-              thumbnails.length > 0 && ( // Ensure thumbnails are ready
-                <div className="p-2">
+              thumbnails.length > 0 && (
+                <div className="p-3 space-y-3">
                   {thumbnails.map((pageIdx) => (
                     <div
                       key={`thumb-${pageIdx}`}
                       onClick={() => goToPage(pageIdx)}
-                      className={`cursor-pointer p-2 mb-2 rounded-md transition-colors ${
+                      className={`cursor-pointer p-3 rounded-xl transition-all duration-200 group ${
                         pageNumber === pageIdx
-                          ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20"
-                          : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                          ? "ring-2 ring-blue-500/50 bg-blue-50/80 dark:bg-blue-900/20 shadow-lg backdrop-blur-sm"
+                          : "hover:bg-gray-100/60 dark:hover:bg-gray-700/30 hover:shadow-md backdrop-blur-sm"
                       }`}
                     >
-                      <div className="bg-white dark:bg-gray-700 p-1 rounded shadow-sm">
+                      <div className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-md group-hover:shadow-lg transition-all duration-200">
                         <Document
-                          file={effectiveFileUrl} // USE effectiveFileUrl
+                          file={effectiveFileUrl}
                           className="thumbnail-document"
                           loading={
-                            <div className="h-32 bg-gray-200 dark:bg-gray-600 animate-pulse rounded"></div>
+                            <div className="h-32 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 animate-pulse rounded-lg"></div>
                           }
                         >
                           <Page
                             pageNumber={pageIdx}
-                            width={150}
+                            width={160}
                             renderTextLayer={false}
                             renderAnnotationLayer={false}
                           />
                         </Document>
-                        <div className="mt-1 text-center text-xs text-gray-600 dark:text-gray-300">
+                        <div className="mt-2 text-center text-xs text-gray-600 dark:text-gray-300 font-medium">
                           Page {pageIdx}
                         </div>
                       </div>
@@ -504,31 +504,32 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
           </div>
         )}
 
-        {/* PDF document area */}
+        {/* PDF Document Area */}
         <div
           ref={viewerRef}
-          className="flex-1 overflow-auto p-4 flex justify-center bg-gray-100 dark:bg-gray-900"
+          className="flex-1 overflow-auto p-6 flex justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800"
         >
           {pdfError && (
             <div className="flex items-center justify-center h-full p-4">
-              <div className="max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-                <div className="text-red-600 dark:text-red-400 text-center mb-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-12 w-12 mx-auto"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
+              <div className="max-w-lg p-8 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/50">
+                <div className="text-red-600 dark:text-red-400 text-center mb-4">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                    <svg
+                      className="w-8 h-8"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                  </div>
                 </div>
-                <p className="text-gray-800 dark:text-gray-200 text-center">
+                <p className="text-gray-800 dark:text-gray-200 text-center font-medium">
                   {pdfError}
                 </p>
               </div>
@@ -537,35 +538,39 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
 
           {!pdfError && effectiveFileUrl && (
             <div
-              className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-1 ${
-                isLoading && "flex justify-center items-center w-full" // This class applies during loading
+              className={`bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-2xl p-2 border border-white/20 dark:border-gray-700/50 ${
+                isLoading &&
+                "flex justify-center items-center w-full min-h-[600px]"
               }`}
               ref={pageRef}
             >
               <Document
-                file={effectiveFileUrl} // USE effectiveFileUrl
+                file={effectiveFileUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
                 onLoadError={onDocumentLoadError}
               >
-                {
-                  isLoading && !pdfError ? ( // If still loading and no error, show spinner
-                    <div className="text-center p-10">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600 mx-auto"></div>
-                      <p className="mt-4 text-gray-600 dark:text-gray-300">
-                        Loading PDF...
-                      </p>
-                    </div>
-                  ) : !isLoading && !pdfError && numPages ? ( // If loaded, no error, and have pages
+                {isLoading && !pdfError ? (
+                  <div className="text-center p-12">
+                    <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mx-auto mb-6"></div>
+                    <p className="text-gray-600 dark:text-gray-300 font-medium text-lg">
+                      Loading PDF...
+                    </p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
+                      Please wait while we prepare your document
+                    </p>
+                  </div>
+                ) : !isLoading && !pdfError && numPages ? (
+                  <div className="rounded-xl overflow-hidden shadow-lg">
                     <Page
-                      key={`page_${pageNumber}_${scale}`} // Key change on scale might help re-render if zoom has issues
+                      key={`page_${pageNumber}_${scale}`}
                       pageNumber={pageNumber}
                       scale={scale}
                       renderTextLayer={true}
                       renderAnnotationLayer={true}
                       className="pdf-page"
                     />
-                  ) : null /* No page content if error or not loaded */
-                }
+                  </div>
+                ) : null}
               </Document>
             </div>
           )}
