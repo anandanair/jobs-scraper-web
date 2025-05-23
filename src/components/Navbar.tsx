@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation"; // Import usePathname
+import { usePathname } from "next/navigation";
 import {
   Briefcase,
   Home,
@@ -14,25 +14,33 @@ import {
   X,
 } from "lucide-react";
 
-// Improved with active state detection
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
-  // Remove useState and useEffect for activePath
-  // const [activePath, setActivePath] = useState<string>("");
-  const pathname = usePathname(); // Get the current pathname reactively
+  const [isScrolled, setIsScrolled] = useState<boolean>(false);
+  const pathname = usePathname();
 
-  // Update active path on client side - REMOVED
-  // useEffect(() => {
-  //   setActivePath(window.location.pathname);
-  // }, []);
+  // Handle scroll effect for navbar backdrop
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Close mobile menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = () => {
-      if (isMenuOpen) setIsMenuOpen(false);
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (isMenuOpen && !target.closest(".mobile-menu-container")) {
+        setIsMenuOpen(false);
+      }
     };
 
-    document.addEventListener("click", handleClickOutside);
+    if (isMenuOpen) {
+      document.addEventListener("click", handleClickOutside);
+    }
     return () => document.removeEventListener("click", handleClickOutside);
   }, [isMenuOpen]);
 
@@ -45,70 +53,97 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="bg-white border-b border-gray-100 flex-shrink-0">
-      <div className="container mx-auto px-4">
-        <nav className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            <Briefcase className="h-5 w-5" />
-            <span className="text-lg">JobTrack</span>
-          </Link>
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          isScrolled
+            ? "bg-white/95 backdrop-blur-md border-b border-gray-200/80"
+            : "bg-white border-b border-gray-100"
+        }`}
+      >
+        <div className="container mx-auto px-4 max-w-6xl">
+          <nav className="flex justify-between items-center h-16">
+            {/* Minimalist Logo */}
+            <Link
+              href="/"
+              className="flex items-center gap-2 group"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <div className="p-1.5 rounded-lg bg-slate-900 group-hover:bg-slate-800 transition-colors">
+                <Briefcase className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-lg font-semibold text-gray-900">
+                JobTrack
+              </span>
+            </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-1">
+              {navItems.map((item) => (
+                <NavItem
+                  key={item.href}
+                  href={item.href}
+                  icon={item.icon}
+                  text={item.text}
+                  isActive={pathname === item.href}
+                />
+              ))}
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMenuOpen(!isMenuOpen);
+              }}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200 mobile-menu-container"
+              aria-label="Toggle menu"
+            >
+              {isMenuOpen ? (
+                <X className="h-5 w-5 text-gray-700" />
+              ) : (
+                <Menu className="h-5 w-5 text-gray-700" />
+              )}
+            </button>
+          </nav>
+        </div>
+      </header>
+
+      {/* Mobile Navigation Overlay */}
+      {isMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 md:hidden bg-black/10 backdrop-blur-sm"
+          onClick={() => setIsMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Navigation Menu */}
+      <div
+        className={`md:hidden fixed top-16 left-0 right-0 z-50 mobile-menu-container transform transition-all duration-200 ease-out ${
+          isMenuOpen
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-2 opacity-0 pointer-events-none"
+        }`}
+      >
+        <div className="mx-4 mt-2 bg-white rounded-xl shadow-lg border border-gray-100">
+          <div className="py-2">
             {navItems.map((item) => (
-              <NavItem
+              <MobileNavItem
                 key={item.href}
                 href={item.href}
                 icon={item.icon}
                 text={item.text}
-                isActive={pathname === item.href} // Use pathname directly
+                isActive={pathname === item.href}
+                onClick={() => setIsMenuOpen(false)}
               />
             ))}
           </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsMenuOpen(!isMenuOpen);
-            }}
-            className="md:hidden focus:outline-none"
-            aria-label="Toggle menu"
-          >
-            {isMenuOpen ? (
-              <X className="h-5 w-5 text-gray-600" />
-            ) : (
-              <Menu className="h-5 w-5 text-gray-600" />
-            )}
-          </button>
-        </nav>
-      </div>
-
-      {/* Mobile Navigation Dropdown - Improved animation */}
-      <div
-        className={`md:hidden fixed inset-x-0 top-16 bg-white border-b border-gray-100 shadow-lg transform transition-transform duration-300 ease-in-out ${
-          isMenuOpen ? "translate-y-0" : "-translate-y-full"
-        }`}
-      >
-        <div className="container mx-auto px-4 py-2">
-          {navItems.map((item) => (
-            <MobileNavItem
-              key={item.href}
-              href={item.href}
-              icon={item.icon}
-              text={item.text}
-              isActive={pathname === item.href} // Use pathname directly
-              onClick={() => setIsMenuOpen(false)}
-            />
-          ))}
         </div>
       </div>
-    </header>
+
+      {/* Spacer to prevent content from hiding behind fixed navbar */}
+      <div className="h-16" />
+    </>
   );
 }
 
@@ -120,38 +155,42 @@ interface NavItemProps {
   onClick?: () => void;
 }
 
-// Desktop Navigation Item
+// Clean Desktop Navigation Item
 function NavItem({ href, icon, text, isActive }: NavItemProps) {
   return (
     <Link
       href={href}
-      className={`px-3 py-2 rounded-md flex items-center text-sm font-medium transition-colors relative ${
-        isActive ? "text-indigo-600" : "text-gray-500 hover:text-gray-800"
+      className={`relative px-3 py-2 rounded-lg flex items-center text-sm font-medium transition-all duration-200 ${
+        isActive
+          ? "text-slate-900 bg-slate-100"
+          : "text-gray-600 hover:text-slate-900 hover:bg-gray-50"
       }`}
     >
-      <span className="mr-1.5">{icon}</span>
+      <span className="mr-2">{icon}</span>
       <span>{text}</span>
+
+      {/* Subtle active indicator */}
       {isActive && (
-        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500 rounded-full" />
+        <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-slate-900 rounded-full" />
       )}
     </Link>
   );
 }
 
-// Mobile Navigation Item
+// Clean Mobile Navigation Item
 function MobileNavItem({ href, icon, text, isActive, onClick }: NavItemProps) {
   return (
     <Link
       href={href}
-      className={`py-4 px-2 flex items-center border-b border-gray-50 ${
+      className={`flex items-center px-4 py-3 mx-2 rounded-lg transition-colors ${
         isActive
-          ? "text-indigo-600 font-medium"
-          : "text-gray-600 hover:text-gray-800"
+          ? "text-slate-900 bg-slate-50"
+          : "text-gray-700 hover:bg-gray-50"
       }`}
       onClick={onClick}
     >
       <span className="mr-3">{icon}</span>
-      <span>{text}</span>
+      <span className="font-medium">{text}</span>
     </Link>
   );
 }
