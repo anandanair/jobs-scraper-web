@@ -24,14 +24,38 @@ async function handleResponse({
 
 export async function getTopScoredJobs(
   page: number = 1, // Default to page 1
-  pageSize: number = 10 // Default page size
+  pageSize: number = 10, // Default page size
+  provider?: string, // Optional provider filter
+  minScore: number = 50, // Default minScore
+  maxScore: number = 100, // Default maxScore
+  isInterested?: boolean | null // Optional interest filter (true, false, or null for 'not marked')
 ): Promise<Job[]> {
   const supabase = await createSupabaseServerClient();
 
-  const rpcParams = {
+  const rpcParams: any = {
     p_page_number: page,
     p_page_size: pageSize,
+    p_provider: provider || null,
+    p_min_score: minScore,
+    p_max_score: maxScore,
   };
+
+  // Determine the string value for p_is_interested_option
+  let interestOption: string | undefined = undefined;
+  if (isInterested === true) {
+    interestOption = 'true';
+  } else if (isInterested === false) {
+    interestOption = 'false';
+  } else if (isInterested === null) {
+    interestOption = 'null_value';
+  }
+  // If isInterested is undefined (meaning 'all'), interestOption remains undefined,
+  // and p_is_interested_option will not be added to rpcParams,
+  // so the RPC function will use its default 'all'.
+
+  if (interestOption !== undefined) {
+    rpcParams.p_is_interested_option = interestOption;
+  }
 
   const response = await supabase.rpc(
     "get_top_scored_jobs_custom_sort",
@@ -47,17 +71,44 @@ export async function getTopScoredJobs(
 }
 
 // New function to get the count of top scored jobs
-// This function remains unchanged as sorting doesn't affect the count of matching items.
-export async function getTopScoredJobsCount(): Promise<number> {
+// Updated to support provider, score, and interest filtering
+export async function getTopScoredJobsCount(
+  provider?: string,
+  minScore: number = 50, // Default minScore
+  maxScore: number = 100, // Default maxScore
+  isInterested?: boolean | null // Optional interest filter
+): Promise<number> {
   const supabase = await createSupabaseServerClient();
-  const { count, error } = await supabase
+
+  let query = supabase
     .from("jobs")
     .select("*", { count: "exact", head: true }) // Select count only
     .eq("is_active", true)
     .eq("status", "new")
     .eq("job_state", "new")
-    // .not("resume_score", "is", null); // Apply the same filters
-    .gte("resume_score", 50);
+    .gte("resume_score", minScore) // Apply minScore filter
+    .lte("resume_score", maxScore); // Apply maxScore filter
+
+  // Add provider filter if specified
+  if (provider) {
+    query = query.eq("provider", provider);
+  }
+
+  // Add interest filter if specified
+  // undefined means 'all' (no filter on is_interested)
+  // null means 'is_interested IS NULL' (not marked)
+  // true means 'is_interested IS TRUE'
+  // false means 'is_interested IS FALSE'
+  if (isInterested === true) {
+    query = query.is("is_interested", true);
+  } else if (isInterested === false) {
+    query = query.is("is_interested", false);
+  } else if (isInterested === null) {
+    query = query.is("is_interested", null);
+  }
+  // If isInterested is undefined, no additional filter is applied for interest status.
+
+  const { count, error } = await query;
 
   if (error) {
     console.error("Supabase count error:", error);
