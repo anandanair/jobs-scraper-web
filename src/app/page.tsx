@@ -92,8 +92,8 @@ export default async function Home() {
   // Get server's current local date in YYYY-MM-DD format
   const now = new Date(); // Current date/time in server's local timezone
   const year = now.getFullYear();
-  const month = (now.getMonth() + 1).toString().padStart(2, '0'); // getMonth() is 0-indexed
-  const day = now.getDate().toString().padStart(2, '0');
+  const month = (now.getMonth() + 1).toString().padStart(2, "0"); // getMonth() is 0-indexed
+  const day = now.getDate().toString().padStart(2, "0");
   const localToday = `${year}-${month}-${day}`; // e.g., "2025-05-21"
 
   console.log("Server's Local Date for Query:", localToday);
@@ -222,24 +222,6 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <header className="mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Briefcase className="w-8 h-8 text-indigo-600" />
-            Job Application Dashboard
-          </h1>
-          <div className="mt-2 flex items-center text-gray-600">
-            <p className="text-lg">
-              Welcome back! Here's an overview of your job search.
-            </p>
-            <div className="ml-auto flex space-x-2 text-sm">
-              <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800">
-                <span className="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>
-                Active Search
-              </span>
-            </div>
-          </div>
-        </header>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {stats.map((stat) => (
             <StatCard
