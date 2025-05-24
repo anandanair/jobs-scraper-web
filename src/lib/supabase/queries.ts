@@ -380,17 +380,6 @@ export async function getJobById(job_id: string): Promise<Job | null> {
   return data as Job | null; // Ensure your Job type definition accommodates this structure
 }
 
-export async function getUserResume(): Promise<Resume | null> {
-  const supabase = await createSupabaseServerClient();
-  const response = await supabase
-    .from("resumes") // Use the 'resumes' table
-    .select("*")
-    .eq("email", "anand@itsmeanand.com")
-    .maybeSingle();
-
-  return handleResponse(response);
-}
-
 // New function to update a job by its ID
 export async function updateJobById(
   job_id: string,
