@@ -22,12 +22,21 @@ const INTEREST_OPTIONS: FilterOption[] = [
   { value: "null", label: "Not Marked" },
 ];
 
+const APPLICATION_STATUS_OPTIONS: FilterOption[] = [
+  { value: "all", label: "All Application Statuses" },
+  { value: "applied", label: "Applied" },
+  { value: "interviewing", label: "Interviewing" },
+  { value: "offer", label: "Offer" }, // Matched to SQL function
+  { value: "rejected", label: "Rejected" },
+];
+
 interface FilterButtonProps {
   disabled?: boolean;
   className?: string;
   providerOptions?: boolean;
   interestOptions?: boolean;
   scoreOptions?: boolean;
+  applicationStatusOptions?: boolean; // New prop
 }
 
 export default function FilterButton({
@@ -36,10 +45,13 @@ export default function FilterButton({
   providerOptions = true,
   interestOptions = true,
   scoreOptions = true,
+  applicationStatusOptions = false, // New prop with default false
 }: FilterButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState("all");
   const [selectedInterest, setSelectedInterest] = useState("all");
+  const [selectedApplicationStatus, setSelectedApplicationStatus] =
+    useState("all"); // New state
   const [minScore, setMinScore] = useState<string>("50");
   const [maxScore, setMaxScore] = useState<string>("100");
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -54,6 +66,9 @@ export default function FilterButton({
 
     const interest = searchParams.get("interest") || "all";
     setSelectedInterest(interest);
+
+    const status = searchParams.get("applicationStatus") || "all"; // New: Initialize from URL
+    setSelectedApplicationStatus(status);
 
     const urlMinScore = searchParams.get("minScore");
     if (urlMinScore) setMinScore(urlMinScore);
@@ -106,6 +121,13 @@ export default function FilterButton({
       params.set("interest", selectedInterest);
     }
 
+    // Application Status filter (New)
+    if (selectedApplicationStatus === "all") {
+      params.delete("applicationStatus");
+    } else {
+      params.set("applicationStatus", selectedApplicationStatus);
+    }
+
     // Score filter
     const min = parseInt(minScore);
     const max = parseInt(maxScore);
@@ -145,12 +167,14 @@ export default function FilterButton({
   const handleClearFilters = () => {
     setSelectedProvider("all");
     setSelectedInterest("all");
+    setSelectedApplicationStatus("all"); // New: Reset application status
     setMinScore("50");
     setMaxScore("100");
 
     const params = new URLSearchParams(searchParams.toString());
     params.delete("provider");
     params.delete("interest");
+    params.delete("applicationStatus"); // New: Clear application status from params
     params.delete("minScore");
     params.delete("maxScore");
     params.delete("page");
@@ -168,6 +192,11 @@ export default function FilterButton({
 
   const handleInterestSelect = (interestValue: string) => {
     setSelectedInterest(interestValue);
+  };
+
+  const handleApplicationStatusSelect = (statusValue: string) => {
+    // New handler
+    setSelectedApplicationStatus(statusValue);
   };
 
   const getDropdownStyles = () => {
@@ -210,15 +239,21 @@ export default function FilterButton({
   const currentMaxScore = searchParams.get("maxScore");
   const currentProvider = searchParams.get("provider");
   const currentInterest = searchParams.get("interest");
+  const currentApplicationStatus = searchParams.get("applicationStatus"); // New
 
   const hasActiveProviderFilter = currentProvider && currentProvider !== "all";
   const hasActiveInterestFilter = currentInterest && currentInterest !== "all";
+  const hasActiveApplicationStatusFilter =
+    currentApplicationStatus && currentApplicationStatus !== "all"; // New
   const hasActiveScoreFilter =
     (currentMinScore && currentMinScore !== "50") ||
     (currentMaxScore && currentMaxScore !== "100");
 
   const isActive =
-    hasActiveProviderFilter || hasActiveScoreFilter || hasActiveInterestFilter;
+    hasActiveProviderFilter ||
+    hasActiveScoreFilter ||
+    hasActiveInterestFilter ||
+    hasActiveApplicationStatusFilter; // New
 
   // Determine button text
   let buttonText = "Filter";
@@ -234,6 +269,13 @@ export default function FilterButton({
       (opt) => opt.value === currentInterest
     );
     activeFilterParts.push(interestOption ? interestOption.label : "Interest");
+  }
+  if (hasActiveApplicationStatusFilter) {
+    // New
+    const statusOption = APPLICATION_STATUS_OPTIONS.find(
+      (opt) => opt.value === currentApplicationStatus
+    );
+    activeFilterParts.push(statusOption ? statusOption.label : "App. Status");
   }
   if (hasActiveScoreFilter) {
     activeFilterParts.push(
@@ -366,6 +408,37 @@ export default function FilterButton({
                           {option.label}
                         </span>
                         {selectedInterest === option.value && (
+                          <Check className="h-4 w-4 text-blue-600 flex-shrink-0 ml-2" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Application Status Filter Section (New) */}
+              {applicationStatusOptions && (
+                <div className="p-4 sm:p-6 border-b border-gray-100">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">
+                    Application Status
+                  </h4>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                    {APPLICATION_STATUS_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() =>
+                          handleApplicationStatusSelect(option.value)
+                        }
+                        className={`text-left px-3 py-2.5 rounded-lg text-sm transition-all duration-150 flex items-center justify-between group ${
+                          selectedApplicationStatus === option.value
+                            ? "bg-blue-50 text-blue-700 border border-blue-200"
+                            : "text-gray-700 hover:bg-gray-50 border border-transparent"
+                        }`}
+                      >
+                        <span className="font-medium truncate">
+                          {option.label}
+                        </span>
+                        {selectedApplicationStatus === option.value && (
                           <Check className="h-4 w-4 text-blue-600 flex-shrink-0 ml-2" />
                         )}
                       </button>

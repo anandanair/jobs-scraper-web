@@ -26,16 +26,28 @@ export default async function AppliedJobsPage({
   const provider = params?.provider as string;
   const providerFilter = provider && provider !== "all" ? provider : undefined;
 
+  // Get application status filter from search params (New)
+  const applicationStatus = params?.applicationStatus as string;
+  const applicationStatusFilter =
+    applicationStatus && applicationStatus !== "all"
+      ? applicationStatus
+      : undefined;
+
   // Fetch the jobs for the current page
   const appliedJobs: Job[] = await getAppliedJobs(
     currentPage,
     PAGE_SIZE,
     providerFilter,
-    searchQuery
+    searchQuery,
+    applicationStatusFilter // New: Pass application status filter
   );
 
   // Fetch total count
-  const totalCount = await getAppliedJobsCount(providerFilter, searchQuery);
+  const totalCount = await getAppliedJobsCount(
+    providerFilter,
+    searchQuery,
+    applicationStatusFilter // New: Pass application status filter
+  );
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
@@ -52,7 +64,11 @@ export default async function AppliedJobsPage({
 
         <div className="flex items-center space-x-3">
           <SearchComponent />
-          <FilterButton interestOptions={false} scoreOptions={false} />
+          <FilterButton
+            interestOptions={false}
+            scoreOptions={false}
+            applicationStatusOptions={true}
+          />
           <RefreshButton currentPage={currentPage} />
         </div>
       </div>
