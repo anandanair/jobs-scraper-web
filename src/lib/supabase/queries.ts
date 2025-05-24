@@ -520,6 +520,35 @@ export async function uploadPersonalizedResume(
   return { publicUrl: publicUrlData.publicUrl };
 }
 
+/**
+ * Retrieves the user profile from the 'resumes' table using the email from NEXT_PUBLIC_USER_EMAIL.
+ * @returns A promise that resolves to the Resume object or null if not found or email is not set.
+ */
+export async function getUserProfileByEmail(): Promise<Resume | null> {
+  const supabase = await createSupabaseServerClient();
+  const email = process.env.NEXT_PUBLIC_USER_EMAIL;
+
+  if (!email) {
+    console.error(
+      "User email (NEXT_PUBLIC_USER_EMAIL) is not set in environment variables."
+    );
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("resumes") // Assuming 'resumes' is the table for general user profiles
+    .select("*")
+    .eq("email", email)
+    .single();
+
+  if (error && error.code !== "PGRST116") {
+    // PGRST116: Row not found, which is okay for single()
+    console.error("Supabase error fetching user profile by email:", error);
+    throw new Error(error.message);
+  }
+  return data as Resume | null;
+}
+
 // --- New Count Functions ---
 
 /**
