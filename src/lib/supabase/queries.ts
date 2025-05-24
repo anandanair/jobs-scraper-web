@@ -239,28 +239,26 @@ export async function getAppliedJobs(
   pageSize: number = 10,
   provider?: string,
   searchQuery?: string,
-  applicationStatus?: string // Add new applicationStatus parameter
+  applicationStatus?: string,
+  sortBy?: string, // New: sortBy parameter
+  sortOrder?: string // New: sortOrder parameter (e.g., 'asc' or 'desc')
 ): Promise<Job[]> {
-  // const appliedStatuses = ["applied", "interviewing", "offered"]; // This is no longer directly used here
   const supabase = await createSupabaseServerClient();
 
-  // Call the RPC function
   const rpcParams: any = {
     p_page_number: page,
     p_page_size: pageSize,
-    p_provider: provider || null, // Add provider to RPC params
-    p_search_query: searchQuery || null, // Add search query to RPC params
-    p_application_status: applicationStatus || null, // Add application status to RPC params
+    p_provider: provider || null,
+    p_search_query: searchQuery || null,
+    p_application_status: applicationStatus || null,
+    p_sort_by: sortBy || null, // New: Pass sortBy to RPC params
+    p_sort_order: sortOrder || "desc", // New: Pass sortOrder, default to 'desc'
   };
 
-  const response = await supabase.rpc(
-    "get_applied_jobs_sorted", // Name of your RPC function
-    rpcParams
-  );
+  const response = await supabase.rpc("get_applied_jobs_sorted", rpcParams);
 
-  // The existing handleResponse function can be used
   const data = await handleResponse(response);
-  return data ?? []; // Return empty array if data is null/undefined
+  return data ?? [];
 }
 
 // Function to get the count of applied jobs

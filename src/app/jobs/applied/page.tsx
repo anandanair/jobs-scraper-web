@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { Filter } from "lucide-react";
 import RefreshButton from "@/components/jobs/RefreshButton";
 import { Job } from "@/types";
 import { getAppliedJobs, getAppliedJobsCount } from "@/lib/supabase/queries";
@@ -7,6 +6,7 @@ import AppliedJobsList from "@/components/jobs/AppliedJobsList";
 import JobListSkeleton from "@/components/jobs/JobListSkeleton";
 import SearchComponent from "@/components/jobs/SearchComponent";
 import FilterButton from "@/components/jobs/FilterButton";
+import SortOptions from "@/components/jobs/SortOptions"; // Import the new SortOptions component
 
 const PAGE_SIZE = 10; // Define page size
 
@@ -26,12 +26,16 @@ export default async function AppliedJobsPage({
   const provider = params?.provider as string;
   const providerFilter = provider && provider !== "all" ? provider : undefined;
 
-  // Get application status filter from search params (New)
+  // Get application status filter from search params
   const applicationStatus = params?.applicationStatus as string;
   const applicationStatusFilter =
     applicationStatus && applicationStatus !== "all"
       ? applicationStatus
       : undefined;
+
+  // Get sort parameters from search params (New)
+  const sortBy = params?.sortBy as string; // e.g., 'application_date', 'resume_score'
+  const sortOrder = params?.sortOrder as string; // e.g., 'asc', 'desc'
 
   // Fetch the jobs for the current page
   const appliedJobs: Job[] = await getAppliedJobs(
@@ -39,14 +43,17 @@ export default async function AppliedJobsPage({
     PAGE_SIZE,
     providerFilter,
     searchQuery,
-    applicationStatusFilter // New: Pass application status filter
+    applicationStatusFilter,
+    sortBy, // New: Pass sortBy
+    sortOrder // New: Pass sortOrder
   );
 
   // Fetch total count
   const totalCount = await getAppliedJobsCount(
     providerFilter,
     searchQuery,
-    applicationStatusFilter // New: Pass application status filter
+    applicationStatusFilter
+    // Note: Sort parameters are typically not needed for total count
   );
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
@@ -69,6 +76,7 @@ export default async function AppliedJobsPage({
             scoreOptions={false}
             applicationStatusOptions={true}
           />
+          <SortOptions /> {/* Add the SortOptions component here */}
           <RefreshButton currentPage={currentPage} />
         </div>
       </div>
