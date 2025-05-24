@@ -5,6 +5,8 @@ import { Job } from "@/types";
 import { getAppliedJobs, getAppliedJobsCount } from "@/lib/supabase/queries";
 import AppliedJobsList from "@/components/jobs/AppliedJobsList";
 import JobListSkeleton from "@/components/jobs/JobListSkeleton";
+import SearchComponent from "@/components/jobs/SearchComponent";
+import FilterButton from "@/components/jobs/FilterButton";
 
 const PAGE_SIZE = 10; // Define page size
 
@@ -17,11 +19,23 @@ export default async function AppliedJobsPage({
   // Get current page from search params, default to 1
   const currentPage = parseInt(params?.page as string) || 1;
 
+  // Get search query from search params
+  const searchQuery = params?.query as string;
+
+  // Get provider filter from search params
+  const provider = params?.provider as string;
+  const providerFilter = provider && provider !== "all" ? provider : undefined;
+
   // Fetch the jobs for the current page
-  const appliedJobs: Job[] = await getAppliedJobs(currentPage, PAGE_SIZE);
+  const appliedJobs: Job[] = await getAppliedJobs(
+    currentPage,
+    PAGE_SIZE,
+    providerFilter,
+    searchQuery
+  );
 
   // Fetch total count
-  const totalCount = await getAppliedJobsCount();
+  const totalCount = await getAppliedJobsCount(providerFilter, searchQuery);
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
@@ -37,14 +51,8 @@ export default async function AppliedJobsPage({
         </div>
 
         <div className="flex items-center space-x-3">
-          <button
-            type="button"
-            className="inline-flex cursor-pointer items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <Filter className="h-4 w-4 mr-2 text-gray-500" />
-            Filter
-          </button>
-
+          <SearchComponent />
+          <FilterButton interestOptions={false} scoreOptions={false} />
           <RefreshButton currentPage={currentPage} />
         </div>
       </div>

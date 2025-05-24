@@ -25,11 +25,17 @@ const INTEREST_OPTIONS: FilterOption[] = [
 interface FilterButtonProps {
   disabled?: boolean;
   className?: string;
+  providerOptions?: boolean;
+  interestOptions?: boolean;
+  scoreOptions?: boolean;
 }
 
 export default function FilterButton({
   disabled = false,
   className = "",
+  providerOptions = true,
+  interestOptions = true,
+  scoreOptions = true,
 }: FilterButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState("all");
@@ -311,101 +317,107 @@ export default function FilterButton({
               }}
             >
               {/* Provider Filter Section */}
-              <div className="p-4 sm:p-6 border-b border-gray-100">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">
-                  Provider
-                </h4>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-                  {PROVIDER_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => handleProviderSelect(option.value)}
-                      className={`text-left px-3 py-2.5 rounded-lg text-sm transition-all duration-150 flex items-center justify-between group ${
-                        selectedProvider === option.value
-                          ? "bg-blue-50 text-blue-700 border border-blue-200"
-                          : "text-gray-700 hover:bg-gray-50 border border-transparent"
-                      }`}
-                    >
-                      <span className="font-medium truncate">
-                        {option.label}
-                      </span>
-                      {selectedProvider === option.value && (
-                        <Check className="h-4 w-4 text-blue-600 flex-shrink-0 ml-2" />
-                      )}
-                    </button>
-                  ))}
+              {providerOptions && (
+                <div className="p-4 sm:p-6 border-b border-gray-100">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">
+                    Provider
+                  </h4>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                    {PROVIDER_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => handleProviderSelect(option.value)}
+                        className={`text-left px-3 py-2.5 rounded-lg text-sm transition-all duration-150 flex items-center justify-between group ${
+                          selectedProvider === option.value
+                            ? "bg-blue-50 text-blue-700 border border-blue-200"
+                            : "text-gray-700 hover:bg-gray-50 border border-transparent"
+                        }`}
+                      >
+                        <span className="font-medium truncate">
+                          {option.label}
+                        </span>
+                        {selectedProvider === option.value && (
+                          <Check className="h-4 w-4 text-blue-600 flex-shrink-0 ml-2" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Interest Filter Section */}
-              <div className="p-4 sm:p-6 border-b border-gray-100">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">
-                  Interest Status
-                </h4>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-                  {INTEREST_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => handleInterestSelect(option.value)}
-                      className={`text-left px-3 py-2.5 rounded-lg text-sm transition-all duration-150 flex items-center justify-between group ${
-                        selectedInterest === option.value
-                          ? "bg-blue-50 text-blue-700 border border-blue-200"
-                          : "text-gray-700 hover:bg-gray-50 border border-transparent"
-                      }`}
-                    >
-                      <span className="font-medium truncate">
-                        {option.label}
-                      </span>
-                      {selectedInterest === option.value && (
-                        <Check className="h-4 w-4 text-blue-600 flex-shrink-0 ml-2" />
-                      )}
-                    </button>
-                  ))}
+              {interestOptions && (
+                <div className="p-4 sm:p-6 border-b border-gray-100">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">
+                    Interest Status
+                  </h4>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                    {INTEREST_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => handleInterestSelect(option.value)}
+                        className={`text-left px-3 py-2.5 rounded-lg text-sm transition-all duration-150 flex items-center justify-between group ${
+                          selectedInterest === option.value
+                            ? "bg-blue-50 text-blue-700 border border-blue-200"
+                            : "text-gray-700 hover:bg-gray-50 border border-transparent"
+                        }`}
+                      >
+                        <span className="font-medium truncate">
+                          {option.label}
+                        </span>
+                        {selectedInterest === option.value && (
+                          <Check className="h-4 w-4 text-blue-600 flex-shrink-0 ml-2" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Score Filter Section */}
-              <div className="p-4 sm:p-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">
-                  Resume Score Range
-                </h4>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-2">
-                        Minimum
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={minScore}
-                        onChange={(e) => setMinScore(e.target.value)}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-colors"
-                        placeholder="0"
-                      />
+              {scoreOptions && (
+                <div className="p-4 sm:p-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">
+                    Resume Score Range
+                  </h4>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-2">
+                          Minimum
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={minScore}
+                          onChange={(e) => setMinScore(e.target.value)}
+                          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-colors"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-2">
+                          Maximum
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={maxScore}
+                          onChange={(e) => setMaxScore(e.target.value)}
+                          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-colors"
+                          placeholder="100"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-2">
-                        Maximum
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={maxScore}
-                        onChange={(e) => setMaxScore(e.target.value)}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-colors"
-                        placeholder="100"
-                      />
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>0</span>
+                      <span>100</span>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span>0</span>
-                    <span>100</span>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Footer */}

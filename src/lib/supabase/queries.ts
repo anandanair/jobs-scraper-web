@@ -236,15 +236,19 @@ export async function getAllActiveJobsCount(
 
 export async function getAppliedJobs(
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  provider?: string,
+  searchQuery?: string
 ): Promise<Job[]> {
   // const appliedStatuses = ["applied", "interviewing", "offered"]; // This is no longer directly used here
   const supabase = await createSupabaseServerClient();
 
   // Call the RPC function
-  const rpcParams = {
+  const rpcParams: any = {
     p_page_number: page,
     p_page_size: pageSize,
+    p_provider: provider || null, // Add provider to RPC params
+    p_search_query: searchQuery || null, // Add search query to RPC params
   };
 
   const response = await supabase.rpc(
@@ -258,18 +262,35 @@ export async function getAppliedJobs(
 }
 
 // Function to get the count of applied jobs
-export async function getAppliedJobsCount(): Promise<number> {
+export async function getAppliedJobsCount(
+  provider?: string,
+  searchQuery?: string
+): Promise<number> {
   const supabase = await createSupabaseServerClient();
   // IMPORTANT: Ensure these statuses match those in your RPC and database
   // Suggestion: Standardize to ['applied', 'interviewing', 'offered'] if 'offered' is correct
   const appliedStatuses = ["applied", "interviewing", "offer"];
 
-  const { count, error } = await supabase
+  let query = supabase
     .from("jobs")
     .select("*", { count: "exact", head: true }) // Select count only
     .eq("is_active", true)
     .in("status", appliedStatuses) // Filter by relevant statuses
     .eq("job_state", "new");
+
+  // Add provider filter if specified
+  if (provider) {
+    query = query.eq("provider", provider);
+  }
+
+  // Add search query filter if specified
+  if (searchQuery) {
+    query = query.or(
+      `job_title.ilike.%${searchQuery}%,company.ilike.%${searchQuery}%`
+    );
+  }
+
+  const { count, error } = await query;
 
   if (error) {
     console.error("Supabase count error (applied jobs):", error);
