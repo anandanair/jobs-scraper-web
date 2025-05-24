@@ -1,10 +1,11 @@
 import { Suspense } from "react";
-import { Filter } from "lucide-react";
 import RefreshButton from "@/components/jobs/RefreshButton";
 import { Job } from "@/types";
 import JobListSkeleton from "@/components/jobs/JobListSkeleton";
 import { getAllActiveJobsCount, getNewJobs } from "@/lib/supabase/queries";
 import TopMatchesList from "@/components/jobs/TopMatchesList";
+import SearchComponent from "@/components/jobs/SearchComponent";
+import FilterButton from "@/components/jobs/FilterButton";
 
 const PAGE_SIZE = 10; // Define page size
 
@@ -17,11 +18,50 @@ export default async function NewJobsPage({
   // Get current page from search params, default to 1
   const currentPage = parseInt(params?.page as string) || 1;
 
+  // Get search query from search params
+  const searchQuery = params?.query as string;
+
+  // Get provider filter from search params
+  const provider = params?.provider as string;
+  const providerFilter = provider && provider !== "all" ? provider : undefined;
+
+  // Get interest filter from search params
+  const interestParam = params?.interest as string;
+  let interestFilter: boolean | null | undefined = undefined;
+  if (interestParam === "true") {
+    interestFilter = true;
+  } else if (interestParam === "false") {
+    interestFilter = false;
+  } else if (interestParam === "null") {
+    interestFilter = null;
+  }
+
+  // Get resume score filter from search params
+  const minScoreParam = params?.minScore as string;
+  const maxScoreParam = params?.maxScore as string;
+
+  const minScore = minScoreParam ? parseInt(minScoreParam) : undefined;
+  const maxScore = maxScoreParam ? parseInt(maxScoreParam) : undefined;
+
   // Fetch the jobs for the current page
-  const newJobs: Job[] = await getNewJobs(currentPage, PAGE_SIZE);
+  const newJobs: Job[] = await getNewJobs(
+    currentPage,
+    PAGE_SIZE,
+    providerFilter,
+    minScore,
+    maxScore,
+    interestFilter, // Pass interestFilter
+    searchQuery // Pass searchQuery
+  );
 
   // Fetch total count
-  const totalCount = await getAllActiveJobsCount();
+  const totalCount = await getAllActiveJobsCount(
+    providerFilter,
+    minScore,
+    maxScore,
+    interestFilter, // Pass interestFilter
+    searchQuery // Pass searchQuery
+  );
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
@@ -37,14 +77,8 @@ export default async function NewJobsPage({
         </div>
 
         <div className="flex items-center space-x-3">
-          <button
-            type="button"
-            className="inline-flex cursor-pointer items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <Filter className="h-4 w-4 mr-2 text-gray-500" />
-            Filter
-          </button>
-
+          <SearchComponent />
+          <FilterButton />
           <RefreshButton currentPage={currentPage} />
         </div>
       </div>

@@ -23,7 +23,7 @@ export default function SearchComponent() {
     }
     // Reset page to 1 when a new search is performed
     params.set("page", "1");
-    router.push(`/jobs/top-matches?${params.toString()}`);
+    router.push(`?${params.toString()}`);
   };
 
   return (

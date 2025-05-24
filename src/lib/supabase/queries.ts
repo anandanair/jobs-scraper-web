@@ -132,38 +132,102 @@ export async function getTopScoredJobsCount(
 
 export async function getNewJobs(
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  provider?: string, // Optional provider filter
+  minScore: number = 0, // Default minScore (assuming 0 as a base for 'new' jobs if not specified)
+  maxScore: number = 100, // Default maxScore
+  isInterested?: boolean | null, // Optional interest filter (true, false, or null for 'not marked')
+  searchQuery?: string // Optional search query
 ): Promise<Job[]> {
   const supabase = await createSupabaseServerClient();
 
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  const response = await supabase
+  let query = supabase
     .from("jobs")
     .select("*")
     .eq("is_active", true)
     .eq("status", "new") // Filter by status
     .eq("job_state", "new")
-    .or("is_interested.is.null,is_interested.eq.true") // Select where is_interested is either null or true
-    .order("scraped_at", { ascending: false })
-    .range(from, to); // Added pagination
+    .gte("resume_score", minScore) // Apply minScore filter
+    .lte("resume_score", maxScore); // Apply maxScore filter
+
+  // Add provider filter if specified
+  if (provider) {
+    query = query.eq("provider", provider);
+  }
+
+  // Add interest filter if specified
+  if (isInterested === true) {
+    query = query.is("is_interested", true);
+  } else if (isInterested === false) {
+    query = query.is("is_interested", false);
+  } else if (isInterested === null) {
+    query = query.is("is_interested", null);
+  } else {
+    // Default behavior from original function: is_interested is null or true
+    query = query.or("is_interested.is.null,is_interested.eq.true");
+  }
+
+  // Add search query filter if specified
+  if (searchQuery) {
+    query = query.or(
+      `job_title.ilike.%${searchQuery}%,company.ilike.%${searchQuery}%`
+    );
+  }
+
+  query = query.order("scraped_at", { ascending: false }).range(from, to); // Added pagination
+
+  const response = await query;
   return handleResponse(response);
 }
 
-// Function to get the count of applied jobs
-export async function getAllActiveJobsCount(): Promise<number> {
+// Function to get the count of all active jobs with filters
+export async function getAllActiveJobsCount(
+  provider?: string, // Optional provider filter
+  minScore: number = 0, // Default minScore (assuming 0 as a base if not specified)
+  maxScore: number = 100, // Default maxScore
+  isInterested?: boolean | null, // Optional interest filter
+  searchQuery?: string // Optional search query
+): Promise<number> {
   const supabase = await createSupabaseServerClient();
 
-  const { count, error } = await supabase
+  let query = supabase
     .from("jobs")
     .select("*", { count: "exact", head: true }) // Select count only
     .eq("is_active", true)
     .eq("status", "new")
-    .eq("job_state", "new");
+    .eq("job_state", "new")
+    .gte("resume_score", minScore) // Apply minScore filter
+    .lte("resume_score", maxScore); // Apply maxScore filter
+
+  // Add provider filter if specified
+  if (provider) {
+    query = query.eq("provider", provider);
+  }
+
+  // Add interest filter if specified
+  if (isInterested === true) {
+    query = query.is("is_interested", true);
+  } else if (isInterested === false) {
+    query = query.is("is_interested", false);
+  } else if (isInterested === null) {
+    query = query.is("is_interested", null);
+  }
+  // If isInterested is undefined, no additional filter is applied for interest status.
+
+  // Add search query filter if specified
+  if (searchQuery) {
+    query = query.or(
+      `job_title.ilike.%${searchQuery}%,company.ilike.%${searchQuery}%`
+    );
+  }
+
+  const { count, error } = await query;
 
   if (error) {
-    console.error("Supabase count error (applied jobs):", error);
+    console.error("Supabase count error (all active jobs):", error);
     throw new Error(error.message); // Or return 0, depending on desired behavior
   }
 
