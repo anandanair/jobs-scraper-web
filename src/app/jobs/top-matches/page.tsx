@@ -8,6 +8,7 @@ import RefreshButton from "@/components/jobs/RefreshButton";
 import FilterButton from "@/components/jobs/FilterButton";
 import { Job } from "@/types";
 import JobListSkeleton from "@/components/jobs/JobListSkeleton";
+import SearchComponent from '@/components/jobs/SearchComponent'; // Added import
 
 const PAGE_SIZE = 10; // Define page size
 
@@ -19,6 +20,9 @@ export default async function TopMatchesPage({
   const params = await searchParams;
   // Get current page from search params, default to 1
   const currentPage = parseInt(params?.page as string) || 1;
+
+  // Get search query from search params
+  const searchQuery = params?.query as string;
 
   // Get provider filter from search params
   const provider = params?.provider as string;
@@ -49,7 +53,8 @@ export default async function TopMatchesPage({
     providerFilter,
     minScore,
     maxScore,
-    interestFilter // Pass interestFilter
+    interestFilter, // Pass interestFilter
+    searchQuery // Pass searchQuery
   );
 
   // Fetch total count with filters
@@ -57,7 +62,8 @@ export default async function TopMatchesPage({
     providerFilter,
     minScore,
     maxScore,
-    interestFilter // Pass interestFilter
+    interestFilter, // Pass interestFilter
+    searchQuery // Pass searchQuery
   );
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
@@ -66,6 +72,10 @@ export default async function TopMatchesPage({
   const getFilterStatusText = () => {
     let statusText = "Showing jobs that best match your resume";
     const filtersApplied = [];
+
+    if (searchQuery) {
+      filtersApplied.push(`for "${searchQuery}"`);
+    }
 
     if (providerFilter) {
       const providerName =
@@ -108,6 +118,7 @@ export default async function TopMatchesPage({
         </div>
 
         <div className="flex items-center space-x-3">
+          <SearchComponent /> {/* Added SearchComponent */}
           <FilterButton />
           <RefreshButton currentPage={currentPage} />
         </div>

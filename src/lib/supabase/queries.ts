@@ -28,7 +28,8 @@ export async function getTopScoredJobs(
   provider?: string, // Optional provider filter
   minScore: number = 50, // Default minScore
   maxScore: number = 100, // Default maxScore
-  isInterested?: boolean | null // Optional interest filter (true, false, or null for 'not marked')
+  isInterested?: boolean | null, // Optional interest filter (true, false, or null for 'not marked')
+  searchQuery?: string // Optional search query
 ): Promise<Job[]> {
   const supabase = await createSupabaseServerClient();
 
@@ -38,16 +39,17 @@ export async function getTopScoredJobs(
     p_provider: provider || null,
     p_min_score: minScore,
     p_max_score: maxScore,
+    p_search_query: searchQuery || null, // Add search query to RPC params
   };
 
   // Determine the string value for p_is_interested_option
   let interestOption: string | undefined = undefined;
   if (isInterested === true) {
-    interestOption = 'true';
+    interestOption = "true";
   } else if (isInterested === false) {
-    interestOption = 'false';
+    interestOption = "false";
   } else if (isInterested === null) {
-    interestOption = 'null_value';
+    interestOption = "null_value";
   }
   // If isInterested is undefined (meaning 'all'), interestOption remains undefined,
   // and p_is_interested_option will not be added to rpcParams,
@@ -71,12 +73,13 @@ export async function getTopScoredJobs(
 }
 
 // New function to get the count of top scored jobs
-// Updated to support provider, score, and interest filtering
+// Updated to support provider, score, interest, and search filtering
 export async function getTopScoredJobsCount(
   provider?: string,
   minScore: number = 50, // Default minScore
   maxScore: number = 100, // Default maxScore
-  isInterested?: boolean | null // Optional interest filter
+  isInterested?: boolean | null, // Optional interest filter
+  searchQuery?: string // Optional search query
 ): Promise<number> {
   const supabase = await createSupabaseServerClient();
 
@@ -108,11 +111,20 @@ export async function getTopScoredJobsCount(
   }
   // If isInterested is undefined, no additional filter is applied for interest status.
 
+  // Add search query filter if specified
+  if (searchQuery) {
+    // Assuming you want to search in 'job_title' and 'company' fields
+    // Adjust the fields and logic as per your database schema and search requirements
+    query = query.or(
+      `job_title.ilike.%${searchQuery}%,company.ilike.%${searchQuery}%`
+    ); // Changed 'role' to 'job_title'
+  }
+
   const { count, error } = await query;
 
   if (error) {
-    console.error("Supabase count error:", error);
-    throw new Error(error.message); // Or return 0, depending on desired behavior
+    console.error("Supabase count error:", error.message || "Unknown error"); // Added a fallback for empty error message
+    throw new Error(error.message || "Failed to get job count"); // Added a fallback for empty error message
   }
 
   return count ?? 0; // Return the count or 0 if null
