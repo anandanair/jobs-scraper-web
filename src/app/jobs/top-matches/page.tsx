@@ -8,7 +8,7 @@ import RefreshButton from "@/components/jobs/RefreshButton";
 import FilterButton from "@/components/jobs/FilterButton";
 import { Job } from "@/types";
 import JobListSkeleton from "@/components/jobs/JobListSkeleton";
-import SearchComponent from '@/components/jobs/SearchComponent'; // Added import
+import SearchComponent from "@/components/jobs/SearchComponent"; // Added import
 
 const PAGE_SIZE = 10; // Define page size
 
@@ -53,8 +53,8 @@ export default async function TopMatchesPage({
     providerFilter,
     minScore,
     maxScore,
-    interestFilter, // Pass interestFilter
-    searchQuery // Pass searchQuery
+    interestFilter,
+    searchQuery
   );
 
   // Fetch total count with filters
@@ -62,8 +62,8 @@ export default async function TopMatchesPage({
     providerFilter,
     minScore,
     maxScore,
-    interestFilter, // Pass interestFilter
-    searchQuery // Pass searchQuery
+    interestFilter,
+    searchQuery
   );
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
@@ -94,7 +94,9 @@ export default async function TopMatchesPage({
     }
 
     if (minScore !== undefined && maxScore !== undefined) {
-      filtersApplied.push(`with resume scores between ${minScore} and ${maxScore}`);
+      filtersApplied.push(
+        `with resume scores between ${minScore} and ${maxScore}`
+      );
     } else if (minScore !== undefined) {
       filtersApplied.push(`with resume scores >= ${minScore}`);
     } else if (maxScore !== undefined) {
@@ -102,7 +104,9 @@ export default async function TopMatchesPage({
     }
 
     if (filtersApplied.length > 0) {
-      statusText = `Showing ${filtersApplied.join(" ")} that best match your resume`;
+      statusText = `Showing ${filtersApplied.join(
+        " "
+      )} that best match your resume`;
     }
 
     return `${statusText} (${totalCount} total)`;
