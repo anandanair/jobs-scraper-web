@@ -65,21 +65,7 @@ export async function getTopScoredJobs(
 
   query = query.order("resume_score", { ascending: false }).range(from, to);
 
-  console.log("🚀 Direct jobs query for top matches (bypassing RPC)");
-
   const response = await query;
-
-  console.log("📋 Direct query response:", {
-    dataLength: response.data?.length,
-    error: response.error,
-    data: response.data
-      ?.slice(0, 2)
-      .map((j) => ({
-        job_id: j.job_id,
-        title: j.job_title,
-        score: j.resume_score,
-      })),
-  });
 
   const data = await handleResponse(response);
   return data ?? [];

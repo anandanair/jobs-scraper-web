@@ -24,15 +24,6 @@ export default async function TopMatchesContent({
 }: TopMatchesContentProps) {
   const PAGE_SIZE = 10;
 
-  console.log("🔍 TopMatchesContent - Fetching with params:", {
-    currentPage,
-    providerFilter,
-    minScore,
-    maxScore,
-    interestFilter,
-    searchQuery,
-  });
-
   // Fetch the jobs for the current page with filters
   const topJobs: Job[] = await getTopScoredJobs(
     currentPage,
@@ -44,16 +35,6 @@ export default async function TopMatchesContent({
     searchQuery,
   );
 
-  console.log("✅ TopMatchesContent - Got jobs:", {
-    jobsCount: topJobs.length,
-    jobs: topJobs.map((j) => ({
-      job_id: j.job_id,
-      title: j.job_title,
-      status: j.status,
-      score: j.resume_score,
-    })),
-  });
-
   // Fetch total count with filters
   const totalCount = await getTopScoredJobsCount(
     providerFilter,
@@ -62,8 +43,6 @@ export default async function TopMatchesContent({
     interestFilter,
     searchQuery,
   );
-
-  console.log("📊 TopMatchesContent - Count query result:", { totalCount });
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
