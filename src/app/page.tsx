@@ -57,7 +57,7 @@ function StatCard({
             <div
               className={`${color.replace(
                 "bg-",
-                "text-"
+                "text-",
               )} bg-opacity-10 p-2.5 rounded-lg`}
             >
               {icon}
@@ -133,7 +133,7 @@ export default async function Home() {
           day: "numeric",
           year: "numeric",
           // No timeZone option, so it uses the server's local timezone for formatting
-        }
+        },
       )}.`,
       color: "bg-pink-500", // Using a new color for distinction
     },
