@@ -1,13 +1,12 @@
 import { Suspense } from "react";
 import RefreshButton from "@/components/jobs/RefreshButton";
-import { Job } from "@/types";
 import JobListSkeleton from "@/components/jobs/JobListSkeleton";
-import { getAllActiveJobsCount, getNewJobs } from "@/lib/supabase/queries";
-import TopMatchesList from "@/components/jobs/TopMatchesList";
 import SearchComponent from "@/components/jobs/SearchComponent";
 import FilterButton from "@/components/jobs/FilterButton";
+import NewJobsContent from "./NewJobsContent";
+import { getAllActiveJobsCount } from "@/lib/supabase/queries";
 
-const PAGE_SIZE = 10; // Define page size
+const PAGE_SIZE = 10;
 
 export default async function NewJobsPage({
   searchParams,
@@ -15,17 +14,11 @@ export default async function NewJobsPage({
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  // Get current page from search params, default to 1
   const currentPage = parseInt(params?.page as string) || 1;
-
-  // Get search query from search params
   const searchQuery = params?.query as string;
-
-  // Get provider filter from search params
   const provider = params?.provider as string;
   const providerFilter = provider && provider !== "all" ? provider : undefined;
 
-  // Get interest filter from search params
   const interestParam = params?.interest as string;
   let interestFilter: boolean | null | undefined = undefined;
   if (interestParam === "true") {
@@ -36,34 +29,19 @@ export default async function NewJobsPage({
     interestFilter = null;
   }
 
-  // Get resume score filter from search params
   const minScoreParam = params?.minScore as string;
   const maxScoreParam = params?.maxScore as string;
-
   const minScore = minScoreParam ? parseInt(minScoreParam) : undefined;
   const maxScore = maxScoreParam ? parseInt(maxScoreParam) : undefined;
 
-  // Fetch the jobs for the current page
-  const newJobs: Job[] = await getNewJobs(
-    currentPage,
-    PAGE_SIZE,
-    providerFilter,
-    minScore,
-    maxScore,
-    interestFilter, // Pass interestFilter
-    searchQuery // Pass searchQuery
-  );
-
-  // Fetch total count
+  // Fetch count for header (fast query)
   const totalCount = await getAllActiveJobsCount(
     providerFilter,
     minScore,
     maxScore,
-    interestFilter, // Pass interestFilter
-    searchQuery // Pass searchQuery
+    interestFilter,
+    searchQuery,
   );
-
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -85,15 +63,17 @@ export default async function NewJobsPage({
 
       {/* Main content with loading state */}
       <Suspense fallback={<JobListSkeleton />}>
-        <TopMatchesList
-          jobs={newJobs}
+        <NewJobsContent
           currentPage={currentPage}
-          totalPages={totalPages}
+          providerFilter={providerFilter}
+          minScore={minScore}
+          maxScore={maxScore}
+          interestFilter={interestFilter}
+          searchQuery={searchQuery}
         />
       </Suspense>
     </div>
   );
 }
 
-// Optional: Add revalidation if needed
-export const revalidate = 3600; // Revalidate once per hour
+export const revalidate = 3600;

@@ -168,11 +168,6 @@ function NavItem({ href, icon, text, isActive }: NavItemProps) {
     >
       <span className="mr-2">{icon}</span>
       <span>{text}</span>
-
-      {/* Subtle active indicator */}
-      {isActive && (
-        <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-slate-900 rounded-full" />
-      )}
     </Link>
   );
 }
