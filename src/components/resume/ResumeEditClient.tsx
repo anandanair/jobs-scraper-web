@@ -8,7 +8,7 @@ import {
   Certification,
   Links,
 } from "@/types";
-import axios from "axios";
+
 import { useRouter } from "next/navigation";
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 
@@ -247,36 +247,41 @@ export default function ResumeEditClient({
     } = resumeDataForPdf;
 
     try {
-      const pdfResponse = await axios.post(
-        "https://generate-pdf-resume-production.up.railway.app/generate-resume/",
-        cleanedResumeDataForPdf,
-        {
-          responseType: "blob", // PDF is binary
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      // Generate PDF using local API route
+      const pdfResponse = await fetch("/api/generate-resume", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(cleanedResumeDataForPdf),
+      });
 
-      // 2. Store the PDF blob in a variable
-      const pdfBlob = pdfResponse.data;
+      if (!pdfResponse.ok) {
+        const errorData = await pdfResponse.json().catch(() => ({
+          error: "PDF generation failed",
+        }));
+        throw new Error(
+          errorData.error || `Failed to generate PDF: ${pdfResponse.status}`
+        );
+      }
 
-      // 3. Convert blob to File (for Supabase upload)
+      // Get the PDF blob from the response
+      const pdfBlob = await pdfResponse.blob();
+
+      // Convert blob to File (for Supabase upload)
       const fileName = `resume_${job_id}.pdf`;
       const file = new File([pdfBlob], fileName, {
         type: "application/pdf",
       });
 
-      // Step 3: Upload the file using the new API endpoint
+      // Upload the file using the existing API endpoint
       const formDataToUpload = new FormData();
       formDataToUpload.append("file", file);
       formDataToUpload.append("fileName", fileName);
 
       const uploadResponse = await fetch(`/api/customized_resumes/${id}/`, {
-        // Using job_id from props
         method: "POST",
         body: formDataToUpload,
-        // Headers for FormData (like Content-Type: multipart/form-data) are set automatically by the browser
       });
 
       if (!uploadResponse.ok) {
@@ -301,7 +306,6 @@ export default function ResumeEditClient({
         error
       );
       setError(
-        // Assuming setError is available in this scope (it is, as part of ResumeEditClient)
         error instanceof Error
           ? `Failed to generate or upload resume: ${error.message}`
           : "An unexpected error occurred while generating/uploading the resume."
