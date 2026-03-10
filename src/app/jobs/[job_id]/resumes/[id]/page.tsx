@@ -28,7 +28,7 @@ export default async function ResumeView({ params }: Params) {
       }
     }
 
-    return <CustomPdfViewer fileUrl={signedUrl} />;
+    return <CustomPdfViewer fileUrl={signedUrl} jobId={job_id} />;
   } catch (error) {
     console.error("Error getting resume:", error);
   }

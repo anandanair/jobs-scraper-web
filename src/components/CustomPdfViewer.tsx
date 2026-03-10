@@ -11,9 +11,13 @@ pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
 interface CustomPdfViewerProps {
   fileUrl: string;
+  jobId?: string;
 }
 
-export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
+export default function CustomPdfViewer({
+  fileUrl,
+  jobId,
+}: CustomPdfViewerProps) {
   const router = useRouter();
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number>(1);
@@ -66,13 +70,13 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
       setIsLoading(false);
       setPdfError(null);
     },
-    []
+    [],
   );
 
   const onDocumentLoadError = useCallback((error: Error) => {
     console.error("Failed to load PDF:", error);
     setPdfError(
-      `Failed to load PDF document. Please ensure the link is correct and the file is accessible. ${error.message}`
+      `Failed to load PDF document. Please ensure the link is correct and the file is accessible. ${error.message}`,
     );
     setIsLoading(false);
     setNumPages(null);
@@ -102,7 +106,11 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
   };
 
   const onClose = () => {
-    router.back();
+    if (jobId) {
+      router.push(`/jobs/${jobId}`);
+    } else {
+      router.back();
+    }
   };
 
   const handleDownload = () => {
