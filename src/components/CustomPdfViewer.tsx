@@ -29,7 +29,8 @@ export default function CustomPdfViewer({ fileUrl }: CustomPdfViewerProps) {
 
   useEffect(() => {
     if (fileUrl) {
-      const urlWithTimestamp = `${fileUrl}?t=${Date.now()}`;
+      const separator = fileUrl.includes("?") ? "&" : "?";
+      const urlWithTimestamp = `${fileUrl}${separator}t=${Date.now()}`;
       setEffectiveFileUrl(urlWithTimestamp);
       setIsLoading(true);
       setNumPages(null);
