@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -19,6 +19,7 @@ export default function CustomPdfViewer({
   jobId,
 }: CustomPdfViewerProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -102,11 +103,20 @@ export default function CustomPdfViewer({
   };
 
   const handleEditClick = () => {
-    router.push(`${window.location.pathname}/edit`);
+    const params = searchParams.toString();
+    const query = params ? `?${params}` : "";
+    router.push(`${window.location.pathname}/edit${query}`);
   };
 
   const onClose = () => {
-    if (jobId) {
+    const source = searchParams.get("source");
+    if (source) {
+      // Return to the source page (e.g. /jobs/top-matches or /jobs/new) with search params preserved
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("source"); // Clean up the source parameter
+      const queryString = params.toString();
+      router.push(queryString ? `${source}?${queryString}` : source);
+    } else if (jobId) {
       router.push(`/jobs/${jobId}`);
     } else {
       router.back();

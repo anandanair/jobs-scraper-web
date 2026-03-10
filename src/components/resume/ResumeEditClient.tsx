@@ -8,7 +8,7 @@ import {
   Certification,
   Links,
 } from "@/types";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, FormEvent } from "react";
 import { Loader2, Save, X, FileText } from "lucide-react";
 import { Toast } from "./ResumeFormUI";
@@ -29,8 +29,9 @@ export default function ResumeEditClient({
     message: string;
     type: "success" | "error";
   } | null>(null);
-  
+
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     setFormData(resumeData);
@@ -45,7 +46,7 @@ export default function ResumeEditClient({
     section: keyof Resume,
     index: number,
     field: keyof T,
-    value: string
+    value: string,
   ) => {
     setFormData((prev) => {
       const arr = [...(prev[section] as any[])];
@@ -100,7 +101,7 @@ export default function ResumeEditClient({
           error: "PDF generation failed",
         }));
         throw new Error(
-          errorData.error || `Failed to generate PDF: ${pdfResponse.status}`
+          errorData.error || `Failed to generate PDF: ${pdfResponse.status}`,
         );
       }
 
@@ -127,7 +128,7 @@ export default function ResumeEditClient({
           details: `HTTP status: ${uploadResponse.status}`,
         }));
         throw new Error(
-          errorData.error || `Failed to upload PDF: ${errorData.details}`
+          errorData.error || `Failed to upload PDF: ${errorData.details}`,
         );
       }
 
@@ -146,13 +147,27 @@ export default function ResumeEditClient({
 
     const { id, created_at, parsed_at, ...updateData } = formData;
     const finalUpdateData = { ...updateData };
-    
+
     // Parse JSON strings to objects if necessary
-    (Object.keys(finalUpdateData) as Array<keyof typeof finalUpdateData>).forEach((key) => {
+    (
+      Object.keys(finalUpdateData) as Array<keyof typeof finalUpdateData>
+    ).forEach((key) => {
       if (typeof finalUpdateData[key] === "string") {
-        if (["skills", "education", "experience", "projects", "certifications", "languages", "links"].includes(key)) {
+        if (
+          [
+            "skills",
+            "education",
+            "experience",
+            "projects",
+            "certifications",
+            "languages",
+            "links",
+          ].includes(key)
+        ) {
           try {
-            (finalUpdateData as any)[key] = JSON.parse(finalUpdateData[key] as string);
+            (finalUpdateData as any)[key] = JSON.parse(
+              finalUpdateData[key] as string,
+            );
           } catch (e) {
             // Ignore parse errors, keep as string
           }
@@ -168,7 +183,10 @@ export default function ResumeEditClient({
           finalUpdateData.resume_link = generatedPdfUrl;
         }
       } catch (pdfError) {
-        console.warn("PDF generation/upload failed. Saving data only.", pdfError);
+        console.warn(
+          "PDF generation/upload failed. Saving data only.",
+          pdfError,
+        );
         // Continue saving even if PDF generation fails.
       }
 
@@ -177,13 +195,17 @@ export default function ResumeEditClient({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          finalUpdateData as Partial<Omit<Resume, "id" | "created_at" | "last_updated">>
+          finalUpdateData as Partial<
+            Omit<Resume, "id" | "created_at" | "last_updated">
+          >,
         ),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData?.error || `HTTP error! status: ${response.status}`,
+        );
       }
 
       const updatedResume: Resume = await response.json();
@@ -192,7 +214,9 @@ export default function ResumeEditClient({
         setToast({ message: "Resume updated successfully!", type: "success" });
         // Navigate back to view page after a short delay so user sees toast
         setTimeout(() => {
-          router.push(`/jobs/${job_id}/resumes/${id}`);
+          const params = searchParams.toString();
+          const query = params ? `?${params}` : "";
+          router.push(`/jobs/${job_id}/resumes/${id}${query}`);
         }, 1500);
       } else {
         throw new Error("Failed to update resume.");
@@ -200,7 +224,8 @@ export default function ResumeEditClient({
     } catch (err) {
       console.error("Error updating resume:", err);
       setToast({
-        message: err instanceof Error ? err.message : "An unexpected error occurred",
+        message:
+          err instanceof Error ? err.message : "An unexpected error occurred",
         type: "error",
       });
     } finally {
@@ -209,7 +234,9 @@ export default function ResumeEditClient({
   };
 
   const handleCancel = () => {
-    router.push(`/jobs/${job_id}/resumes/${resumeData.id}`);
+    const params = searchParams.toString();
+    const query = params ? `?${params}` : "";
+    router.push(`/jobs/${job_id}/resumes/${resumeData.id}${query}`);
   };
 
   return (
@@ -228,7 +255,9 @@ export default function ResumeEditClient({
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <FileText size={18} className="text-navy-600" />
-            <h1 className="text-xl font-bold text-slate-900">Edit Custom Resume</h1>
+            <h1 className="text-xl font-bold text-slate-900">
+              Edit Custom Resume
+            </h1>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -251,9 +280,10 @@ export default function ResumeEditClient({
             </button>
           </div>
         </div>
-        
+
         <p className="text-sm text-slate-500 mb-2">
-          Editing this tailored resume will automatically generate a new PDF cover letter and save it to the job prospect.
+          Editing this tailored resume will automatically generate a new PDF
+          cover letter and save it to the job prospect.
         </p>
       </div>
 
