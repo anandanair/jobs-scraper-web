@@ -1,56 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import PDFDocument from "pdfkit";
+import { Resume } from "@/types";
 
-// --- Type definitions matching the Resume model ---
-interface Links {
-  linkedin?: string | null;
-  github?: string | null;
-  portfolio?: string | null;
-}
-
-interface Education {
-  degree: string;
-  field_of_study?: string | null;
-  institution?: string | null;
-  start_year?: string | null;
-  end_year?: string | null;
-}
-
-interface Experience {
-  job_title: string;
-  company?: string | null;
-  location?: string | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  description?: string | null;
-}
-
-interface Project {
-  name: string;
-  description?: string | null;
-  technologies?: string[] | null;
-}
-
-interface Certification {
-  name: string;
-  issuer?: string | null;
-  year?: string | null;
-}
-
-interface ResumeInput {
-  name: string;
-  email: string;
-  phone: string;
-  location: string;
-  summary: string;
-  skills: string[];
-  education: Education[];
-  experience: Experience[];
-  projects: Project[];
-  certifications: Certification[];
-  languages: string[];
-  links: Links;
-}
+// The API receives a resume data object without technical metadata fields
+type ResumeInput = Omit<Resume, "id" | "created_at" | "parsed_at" | "last_updated" | "resume_link">;
 
 // --- Color palette (matches Python script) ---
 const COLORS = {
