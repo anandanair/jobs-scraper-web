@@ -81,19 +81,14 @@ export default async function Profile() {
 
       <div className="mb-6">
         <h2 className="text-xl font-semibold mb-2">Skills</h2>
-        {/* Assuming skills is an object; adjust if it's an array or string */}
         <div className="flex flex-wrap gap-2">
-          {typeof userProfile.skills === "object" &&
-            userProfile.skills !== null &&
-            Object.keys(userProfile.skills).map((skill) => (
+          {userProfile.skills &&
+            userProfile.skills.map((skill: string) => (
               <span
                 key={skill}
                 className="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm"
               >
-                {skill}{" "}
-                {Array.isArray(userProfile.skills[skill])
-                  ? `(${userProfile.skills[skill].join(", ")})`
-                  : ""}
+                {skill}
               </span>
             ))}
         </div>
@@ -173,37 +168,34 @@ export default async function Profile() {
           <h2 className="text-xl font-semibold mb-2">Languages</h2>
           {/* Assuming languages is an array of objects like [{ language: 'English', proficiency: 'Native' }] */}
           <ul className="list-disc list-inside">
-            {userProfile.languages.map((lang, index) => (
-              <li key={index}>
-                {lang.language}
-                {lang.proficiency ? ` (${lang.proficiency})` : ""}
-              </li>
+            {userProfile.languages.map((lang: string, index: number) => (
+              <li key={index}>{lang}</li>
             ))}
           </ul>
         </div>
       )}
 
-      {userProfile.resume_link && (
-        <div className="mt-6">
-          <a
-            href={userProfile.resume_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            View Full Resume (PDF)
-          </a>
-        </div>
-      )}
-
       <p className="text-xs text-gray-500 mt-8">
-        Profile created at:{" "}
-        {new Date(userProfile.created_at).toLocaleDateString()} | Last parsed
-        at: {new Date(userProfile.parsed_at).toLocaleDateString()}
-        {userProfile.last_updated &&
-          ` | Last updated at: ${new Date(
-            userProfile.last_updated
-          ).toLocaleDateString()}`}
+        {userProfile.created_at && (
+          <>
+            Profile created at:{" "}
+            {new Date(userProfile.created_at).toLocaleDateString()}
+          </>
+        )}
+        {userProfile.parsed_at && (
+          <>
+            {" | "}
+            Last parsed at:{" "}
+            {new Date(userProfile.parsed_at).toLocaleDateString()}
+          </>
+        )}
+        {userProfile.last_updated && (
+          <>
+            {" | "}
+            Last updated at:{" "}
+            {new Date(userProfile.last_updated).toLocaleDateString()}
+          </>
+        )}
       </p>
     </div>
   );
