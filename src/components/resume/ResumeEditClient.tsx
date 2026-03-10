@@ -57,8 +57,11 @@ export default function ResumeEditClient({
       if (Array.isArray(currentSection) && index !== undefined && field) {
         // Handle arrays of objects (Education, Experience, etc.)
         const newArray = [...currentSection];
-        if (newArray[index]) {
-          newArray[index] = { ...newArray[index], [field as string]: value };
+        if (newArray[index] && typeof newArray[index] === "object") {
+          (newArray[index] as any) = {
+            ...(newArray[index] as object),
+            [field as string]: value,
+          };
           (newData[section] as any) = newArray;
         }
       } else if (
@@ -286,12 +289,12 @@ export default function ResumeEditClient({
         );
       }
 
-      const { publicUrl } = await uploadResponse.json();
+      const { fileName: uploadedFileName } = await uploadResponse.json();
       console.log(
-        "Uploaded personalized resume via API, public URL:",
-        publicUrl
+        "Uploaded personalized resume via API, file name:",
+        uploadedFileName
       );
-      return publicUrl;
+      return uploadedFileName;
     } catch (error) {
       console.error(
         "Error in generateResumePdf (generating or uploading PDF):",
@@ -424,7 +427,7 @@ export default function ResumeEditClient({
             }
             onChange={(e) => handleJsonTextareaChange(e, "skills")}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono"
-            placeholder='e.g., { "Programming": ["JavaScript", "Python"], "Tools": ["Git", "Docker"] }'
+            placeholder='e.g., ["JavaScript", "Python", "Git", "Docker"]'
           />
         </div>
 
@@ -496,7 +499,7 @@ export default function ResumeEditClient({
             }
             onChange={(e) => handleJsonTextareaChange(e, "languages")}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono"
-            placeholder='e.g., [{ "language": "English", "proficiency": "Native" }, { "language": "Spanish", "proficiency": "Fluent" }]'
+            placeholder='e.g., ["English", "Spanish", "French"]'
           />
         </div>
 
