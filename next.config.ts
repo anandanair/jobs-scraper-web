@@ -1,10 +1,14 @@
 import type { NextConfig } from "next";
-import { config } from "process";
 
 const nextConfig: NextConfig = {
   webpack: (config) => {
     config.resolve.alias.canvas = false;
     return config;
+  },
+  turbopack: {
+    resolveAlias: {
+      canvas: "./src/lib/empty-module.js",
+    },
   },
   serverExternalPackages: ["pdfkit"],
   /* config options here */
