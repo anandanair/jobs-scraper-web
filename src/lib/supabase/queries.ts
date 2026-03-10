@@ -535,6 +535,50 @@ export async function getUserProfileByEmail(): Promise<Resume | null> {
   return (data as any)?.resume_data as Resume | null;
 }
 
+/**
+ * Updates the base resume data in the 'base_resume' table.
+ * Finds the latest row and updates its resume_data JSONB column.
+ * @param resumeData The full Resume data object to save.
+ * @returns The updated Resume data or null.
+ */
+export async function updateBaseResume(
+  resumeData: Omit<Resume, "id" | "created_at" | "parsed_at" | "last_updated" | "resume_link">,
+): Promise<Resume | null> {
+  const supabase = await createSupabaseServerClient();
+
+  // First, find the latest base resume row ID
+  const { data: existing, error: fetchError } = await supabase
+    .from("base_resume")
+    .select("id")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (fetchError) {
+    if (fetchError.code === "PGRST116") {
+      console.warn("No base resume found to update.");
+      return null;
+    }
+    console.error("Error fetching base resume for update:", fetchError);
+    throw new Error(fetchError.message);
+  }
+
+  // Update the resume_data JSONB column
+  const { data, error } = await supabase
+    .from("base_resume")
+    .update({ resume_data: resumeData })
+    .eq("id", existing.id)
+    .select("resume_data")
+    .single();
+
+  if (error) {
+    console.error("Error updating base resume:", error);
+    throw new Error(error.message);
+  }
+
+  return (data as any)?.resume_data as Resume | null;
+}
+
 // --- New Count Functions ---
 
 /**
