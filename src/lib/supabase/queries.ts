@@ -134,8 +134,8 @@ export async function getNewJobs(
   page: number = 1,
   pageSize: number = 10,
   provider?: string, // Optional provider filter
-  minScore: number = 0, // Default minScore (assuming 0 as a base for 'new' jobs if not specified)
-  maxScore: number = 100, // Default maxScore
+  minScore?: number, // Optional minScore filter
+  maxScore?: number, // Optional maxScore filter
   isInterested?: boolean | null, // Optional interest filter (true, false, or null for 'not marked')
   searchQuery?: string, // Optional search query
 ): Promise<Job[]> {
@@ -149,9 +149,15 @@ export async function getNewJobs(
     .select("*")
     .eq("is_active", true)
     .eq("status", "new") // Filter by status
-    .eq("job_state", "new")
-    .gte("resume_score", minScore) // Apply minScore filter
-    .lte("resume_score", maxScore); // Apply maxScore filter
+    .eq("job_state", "new");
+
+  // Only apply score filter if explicitly provided by user
+  if (minScore !== undefined) {
+    query = query.gte("resume_score", minScore);
+  }
+  if (maxScore !== undefined) {
+    query = query.lte("resume_score", maxScore);
+  }
 
   // Add provider filter if specified
   if (provider) {
@@ -177,7 +183,11 @@ export async function getNewJobs(
     );
   }
 
-  query = query.order("scraped_at", { ascending: false }).range(from, to); // Added pagination
+  // Order by highest resume_score first, unscored (NULL) last, then newest scraped_at
+  query = query
+    .order("resume_score", { ascending: false, nullsFirst: false })
+    .order("scraped_at", { ascending: false })
+    .range(from, to);
 
   const response = await query;
   return handleResponse(response);
@@ -186,8 +196,8 @@ export async function getNewJobs(
 // Function to get the count of all active jobs with filters
 export async function getAllActiveJobsCount(
   provider?: string, // Optional provider filter
-  minScore: number = 0, // Default minScore (assuming 0 as a base if not specified)
-  maxScore: number = 100, // Default maxScore
+  minScore?: number, // Optional minScore filter
+  maxScore?: number, // Optional maxScore filter
   isInterested?: boolean | null, // Optional interest filter
   searchQuery?: string, // Optional search query
 ): Promise<number> {
@@ -198,9 +208,15 @@ export async function getAllActiveJobsCount(
     .select("*", { count: "exact", head: true }) // Select count only
     .eq("is_active", true)
     .eq("status", "new")
-    .eq("job_state", "new")
-    .gte("resume_score", minScore) // Apply minScore filter
-    .lte("resume_score", maxScore); // Apply maxScore filter
+    .eq("job_state", "new");
+
+  // Only apply score filter if explicitly provided by user
+  if (minScore !== undefined) {
+    query = query.gte("resume_score", minScore);
+  }
+  if (maxScore !== undefined) {
+    query = query.lte("resume_score", maxScore);
+  }
 
   // Add provider filter if specified
   if (provider) {
