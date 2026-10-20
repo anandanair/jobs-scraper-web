@@ -17,18 +17,29 @@ export default async function ResumeView({ params }: Params) {
     if (!resume_data) return notFound();
 
     let signedUrl = "";
+    let downloadFileName = "";
     if (resume_data.resume_link) {
       // The resume_link now stores the file name, e.g., 'resume_123.pdf'
       // These are stored in 'personalized_resumes' bucket.
       const storagePath = resume_data.resume_link;
+      downloadFileName = storagePath.split("/").pop() || "";
       try {
         signedUrl = await getSignedUrl(storagePath);
       } catch (err) {
         console.error("Failed to get signed URL for resume:", err);
       }
+    } else if (resume_data.name) {
+      downloadFileName = `${resume_data.name.trim().replace(/\s+/g, "_")}_resume.pdf`;
     }
 
-    return <CustomPdfViewer fileUrl={signedUrl} jobId={job_id} />;
+    return (
+      <CustomPdfViewer
+        fileUrl={signedUrl}
+        jobId={job_id}
+        resumeId={id}
+        fileName={downloadFileName}
+      />
+    );
   } catch (error) {
     console.error("Error getting resume:", error);
   }

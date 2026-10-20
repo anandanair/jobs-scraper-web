@@ -12,17 +12,22 @@ pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 interface CustomPdfViewerProps {
   fileUrl: string;
   jobId?: string;
+  resumeId?: string;
+  fileName?: string;
 }
 
 export default function CustomPdfViewer({
   fileUrl,
   jobId,
+  resumeId,
+  fileName,
 }: CustomPdfViewerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [scale, setScale] = useState(1.1);
   const [thumbnails, setThumbnails] = useState<number[]>([]);
@@ -123,35 +128,97 @@ export default function CustomPdfViewer({
     }
   };
 
-  const handleDownload = () => {
-    if (effectiveFileUrl) {
-      let fileName = fileUrl.split("/").pop() || "document.pdf";
-      fileName = fileName.replace(/\.[^/.]+$/, "") + ".pdf";
+  const getCleanFileName = (): string => {
+    if (fileName && fileName.trim()) {
+      let name = fileName.trim().replace(/[\\/:*?"<>|]/g, "_");
+      if (!name.toLowerCase().endsWith(".pdf")) {
+        name += ".pdf";
+      }
+      return name;
+    }
 
-      fetch(effectiveFileUrl.split("?")[0])
-        .then((response) => response.blob())
-        .then((blob) => {
-          const pdfBlob = new Blob([blob], {
-            type: "application/pdf",
-          });
+    try {
+      const parsedUrl = new URL(fileUrl, window.location.href);
+      const lastSegment = parsedUrl.pathname.split("/").filter(Boolean).pop();
+      if (lastSegment) {
+        let decoded = decodeURIComponent(lastSegment).replace(/[\\/:*?"<>|]/g, "_");
+        if (!decoded.toLowerCase().endsWith(".pdf")) {
+          decoded = `${decoded.replace(/\.[^/.]+$/, "")}.pdf`;
+        }
+        return decoded;
+      }
+    } catch {
+      const cleanUrl = fileUrl.split("?")[0].split("#")[0];
+      const lastSegment = cleanUrl.split("/").filter(Boolean).pop();
+      if (lastSegment) {
+        let decoded = decodeURIComponent(lastSegment).replace(/[\\/:*?"<>|]/g, "_");
+        if (!decoded.toLowerCase().endsWith(".pdf")) {
+          decoded = `${decoded.replace(/\.[^/.]+$/, "")}.pdf`;
+        }
+        return decoded;
+      }
+    }
 
-          const blobUrl = window.URL.createObjectURL(pdfBlob);
-          const link = document.createElement("a");
-          link.href = blobUrl;
-          link.download = fileName;
-          link.setAttribute("type", "application/pdf");
+    return "resume.pdf";
+  };
 
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+  const handleDownload = async () => {
+    if ((!fileUrl && !resumeId) || isDownloading) return;
 
-          setTimeout(() => {
-            window.URL.revokeObjectURL(blobUrl);
-          }, 100);
-        })
-        .catch((error) => {
-          console.error("Error downloading PDF:", error);
-        });
+    setIsDownloading(true);
+    try {
+      let downloadUrl = fileUrl;
+      let response: Response | null = null;
+
+      if (downloadUrl) {
+        response = await fetch(downloadUrl);
+      }
+
+      // If fetch failed or signed URL expired (400/401/403/etc.), try fetching a fresh signed URL
+      if ((!response || !response.ok) && resumeId) {
+        try {
+          const refreshRes = await fetch(`/api/customized_resumes/${resumeId}/signed-url`);
+          if (refreshRes.ok) {
+            const data = await refreshRes.json();
+            if (data.signedUrl) {
+              downloadUrl = data.signedUrl;
+              response = await fetch(downloadUrl);
+            }
+          }
+        } catch (refreshErr) {
+          console.warn("Failed to refresh signed URL:", refreshErr);
+        }
+      }
+
+      if (!response || !response.ok) {
+        throw new Error(
+          `Failed to download PDF (${response ? `${response.status} ${response.statusText}` : "network error"})`
+        );
+      }
+
+      const blob = await response.blob();
+      const pdfBlob = new Blob([blob], {
+        type: "application/pdf",
+      });
+
+      const blobUrl = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = getCleanFileName();
+      link.setAttribute("type", "application/pdf");
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl);
+      }, 1000);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      alert("Error downloading PDF. Please try again.");
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -431,23 +498,27 @@ export default function CustomPdfViewer({
             {/* Download Button */}
             <button
               onClick={handleDownload}
-              disabled={!effectiveFileUrl || isLoading}
+              disabled={(!effectiveFileUrl && !fileUrl) || isLoading || isDownloading}
               className="p-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Download PDF"
+              title={isDownloading ? "Downloading..." : "Download PDF"}
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
+              {isDownloading ? (
+                <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+              )}
             </button>
           </div>
 
