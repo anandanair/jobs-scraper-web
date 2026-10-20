@@ -14,11 +14,15 @@ const COLORS = {
   hrLine: "#2C3E50", // Section divider color
 };
 
-// --- Page constants (matches Python: letter, 0.6" margins) ---
-const MARGIN = 0.6 * 72; // 0.6 inches in points
+// --- Page constants (matches Python: letter, 0.5" left/right, 0.45" top/bottom) ---
+const MARGIN_LEFT = 0.5 * 72; // 0.5 inches in points = 36 pt
+const MARGIN_RIGHT = 0.5 * 72; // 0.5 inches in points = 36 pt
+const MARGIN_TOP = 0.45 * 72; // 0.45 inches in points = 32.4 pt
+const MARGIN_BOTTOM = 0.45 * 72; // 0.45 inches in points = 32.4 pt
+const MARGIN = MARGIN_LEFT;
 const PAGE_WIDTH = 612; // Letter width in points
 const PAGE_HEIGHT = 792; // Letter height in points
-const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
 
 // --- Abbreviation-safe sentence splitter (matches Python) ---
 const ABBREVIATIONS: Record<string, string> = {
@@ -81,7 +85,7 @@ function isNA(value: string | null | undefined): boolean {
 
 // --- Helper: Check if we need a new page ---
 function ensureSpace(doc: PDFKit.PDFDocument, neededHeight: number) {
-  if (doc.y + neededHeight > PAGE_HEIGHT - MARGIN) {
+  if (doc.y + neededHeight > PAGE_HEIGHT - MARGIN_BOTTOM) {
     doc.addPage();
   }
 }
@@ -100,7 +104,7 @@ function drawSectionHeading(doc: PDFKit.PDFDocument, title: string) {
   const ruleY = doc.y + 2;
   doc
     .moveTo(MARGIN, ruleY)
-    .lineTo(PAGE_WIDTH - MARGIN, ruleY)
+    .lineTo(PAGE_WIDTH - MARGIN_RIGHT, ruleY)
     .strokeColor(COLORS.hrLine)
     .lineWidth(1)
     .stroke();
@@ -114,8 +118,8 @@ function drawBullet(doc: PDFKit.PDFDocument, text: string) {
     .font("Helvetica")
     .fontSize(10)
     .fillColor(COLORS.text)
-    .text(`• ${text}`, MARGIN + 15, doc.y, {
-      width: CONTENT_WIDTH - 15,
+    .text(`• ${text}`, MARGIN + 12, doc.y, {
+      width: CONTENT_WIDTH - 12,
       lineGap: 2,
     });
   doc.y += 2; // spaceAfter matching Python's 4pt (approx)
@@ -195,10 +199,10 @@ export async function POST(request: NextRequest) {
     const doc = new PDFDocument({
       size: "LETTER",
       margins: {
-        top: MARGIN,
-        bottom: MARGIN,
-        left: MARGIN,
-        right: MARGIN,
+        top: MARGIN_TOP,
+        bottom: MARGIN_BOTTOM,
+        left: MARGIN_LEFT,
+        right: MARGIN_RIGHT,
       },
       autoFirstPage: true,
       bufferPages: true,
@@ -219,7 +223,7 @@ export async function POST(request: NextRequest) {
         .font("Helvetica-Bold")
         .fontSize(26)
         .fillColor(COLORS.primary)
-        .text(resumeData.name.toUpperCase(), MARGIN, MARGIN, {
+        .text(resumeData.name.toUpperCase(), MARGIN, MARGIN_TOP, {
           width: CONTENT_WIDTH,
         });
       doc.moveDown(0.3);
@@ -335,8 +339,9 @@ export async function POST(request: NextRequest) {
             const skillIndex = i * numColumns + j;
             if (skillIndex < skillsList.length) {
               const skillText = `• ${skillsList[skillIndex]}`;
-              const colX = MARGIN + j * colWidth + (j === 0 ? 10 : 0);
-              const adjustedWidth = colWidth - (j === 0 ? 10 : 0) - 6;
+              const colPad = j === 0 ? 0 : 8;
+              const colX = MARGIN + j * colWidth + colPad;
+              const adjustedWidth = colWidth - colPad - 4;
 
               doc
                 .font("Helvetica")
@@ -378,9 +383,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Two-column: job title (left, bold blue) | dates (right, italic gray)
-        // Python: colWidths=[4.636*inch, 2.5*inch]
-        const leftWidth = 4.636 * 72;
-        const rightWidth = CONTENT_WIDTH - leftWidth;
+        // Matches Python: colWidths=[avail_width - 2.0*inch, 2.0*inch]
+        const rightWidth = 2.0 * 72;
+        const leftWidth = CONTENT_WIDTH - rightWidth;
 
         drawTwoColumnRow(
           doc,
@@ -436,9 +441,9 @@ export async function POST(request: NextRequest) {
           years = `Graduated ${edu.end_year}`;
         }
 
-        // Python: colWidths=[5.15*inch, 2*inch]
-        const leftWidth = 5.15 * 72;
-        const rightWidth = CONTENT_WIDTH - leftWidth;
+        // Matches Python: colWidths=[avail_width - 1.8*inch, 1.8*inch]
+        const rightWidth = 1.8 * 72;
+        const leftWidth = CONTENT_WIDTH - rightWidth;
 
         // Degree is bold in Python (<b> tags), use Helvetica-Bold
         drawTwoColumnRow(
@@ -481,15 +486,10 @@ export async function POST(request: NextRequest) {
             .fontSize(12)
             .fillColor(COLORS.primary)
             .text(proj.name, MARGIN, doc.y, { width: CONTENT_WIDTH });
-          doc.y += 4;
+          doc.y += 3;
         }
 
-        // Description bullets
-        if (!isNA(proj.description)) {
-          drawDescription(doc, proj.description!);
-        }
-
-        // Technologies
+        // Technologies (shown right below header before description)
         if (
           proj.technologies &&
           proj.technologies.length > 0 &&
@@ -502,8 +502,13 @@ export async function POST(request: NextRequest) {
             doc.text(`Technologies: ${techList.join(", ")}`, MARGIN, doc.y, {
               width: CONTENT_WIDTH,
             });
-            doc.y += 4;
+            doc.y += 3;
           }
+        }
+
+        // Description bullets
+        if (!isNA(proj.description)) {
+          drawDescription(doc, proj.description!);
         }
 
         doc.y += 0.15 * 72;
@@ -520,9 +525,9 @@ export async function POST(request: NextRequest) {
         const certName = isNA(cert.name) ? "" : cert.name;
         const yearText = isNA(cert.year) ? "" : cert.year!;
 
-        // Python: colWidths=[5.3*inch, 2*inch]
-        const leftWidth = 5.3 * 72;
-        const rightWidth = CONTENT_WIDTH - leftWidth;
+        // Matches Python: colWidths=[avail_width - 1.8*inch, 1.8*inch]
+        const rightWidth = 1.8 * 72;
+        const leftWidth = CONTENT_WIDTH - rightWidth;
 
         drawTwoColumnRow(
           doc,

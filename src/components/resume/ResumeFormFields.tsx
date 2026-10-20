@@ -364,20 +364,6 @@ export function ResumeFormFields({
                   }
                 />
                 <FormField
-                  label="Description"
-                  id={`proj-desc-${i}`}
-                  value={proj.description || ""}
-                  onChange={(e) =>
-                    updateNestedField<Project>(
-                      "projects",
-                      i,
-                      "description",
-                      e.target.value
-                    )
-                  }
-                  rows={2}
-                />
-                <FormField
                   label="Technologies (comma-separated)"
                   id={`proj-tech-${i}`}
                   value={
@@ -398,6 +384,20 @@ export function ResumeFormFields({
                     );
                   }}
                   placeholder="React, Node.js, ..."
+                />
+                <FormField
+                  label="Description"
+                  id={`proj-desc-${i}`}
+                  value={proj.description || ""}
+                  onChange={(e) =>
+                    updateNestedField<Project>(
+                      "projects",
+                      i,
+                      "description",
+                      e.target.value
+                    )
+                  }
+                  rows={2}
                 />
               </div>
             </ArrayItemCard>

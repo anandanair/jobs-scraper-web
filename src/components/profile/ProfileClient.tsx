@@ -383,13 +383,8 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                   <h3 className="text-sm font-semibold text-slate-800">
                     {proj.name}
                   </h3>
-                  {proj.description && (
-                    <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-                      {proj.description}
-                    </p>
-                  )}
                   {proj.technologies && proj.technologies.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
                       {proj.technologies.map((tech) => (
                         <span
                           key={tech}
@@ -399,6 +394,11 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                         </span>
                       ))}
                     </div>
+                  )}
+                  {proj.description && (
+                    <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                      {proj.description}
+                    </p>
                   )}
                 </div>
               ))}
