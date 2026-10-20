@@ -70,12 +70,17 @@ Once the backend is successfully set up and running, you can proceed with settin
     ```
 
 3.  **Set up environment variables:**
-    Create a `.env.local` file in the root of your project and add the necessary Supabase credentials:
+    Create a `.env.local` file in the root of your project using the credentials from your Supabase project (from the **"Connect"** button at the top of your Supabase dashboard, or **Project Settings > API**):
+
     ```env
-    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-    NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+    NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...   # Your Publishable (anon) key
+    SUPABASE_SERVICE_ROLE_KEY=sb_secret_...            # Your Secret (service role) key
     ```
+
+    > **Note on Supabase Keys:**
+    > - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Uses the **Publishable key** (`sb_publishable_...` or legacy `anon`).
+    > - `SUPABASE_SERVICE_ROLE_KEY`: Uses the **Secret key** (`sb_secret_...` or legacy `service_role`). Keep this key private!
 
 ### Running the Development Server
 
