@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import {
   getActiveResumeStyle,
   saveActiveResumeStyle,
+  saveResumeStyleSetting,
+  updateResumeStyleById,
   getAllResumeStyles,
   activateResumeStyleById,
   deleteResumeStyleById,
@@ -30,11 +32,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, id, themeConfig, name } = body as {
-      action?: "save" | "activate" | "delete";
+    const { action, id, themeConfig, name, makeActive } = body as {
+      action?: "save" | "activate" | "delete" | "update";
       id?: string;
       themeConfig?: ResumeThemeConfig;
       name?: string;
+      makeActive?: boolean;
     };
 
     if (action === "activate" && id) {
@@ -50,7 +53,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, deletedId: id }, { status: 200 });
     }
 
-    // Default: Save new style / persona
+    if (action === "update" && id) {
+      if (!themeConfig || !themeConfig.colors || !themeConfig.typography) {
+        return NextResponse.json(
+          { error: "Invalid themeConfig payload provided" },
+          { status: 400 }
+        );
+      }
+      const updated = await updateResumeStyleById(id, themeConfig, name);
+      return NextResponse.json(
+        { success: true, record: updated, themeConfig: updated.theme_config },
+        { status: 200 }
+      );
+    }
+
+    // Default or "save": Save new style / persona
     if (!themeConfig || !themeConfig.colors || !themeConfig.typography) {
       return NextResponse.json(
         { error: "Invalid themeConfig payload provided" },
@@ -58,7 +75,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const savedRecord = await saveActiveResumeStyle(themeConfig, name);
+    const savedRecord = await saveResumeStyleSetting(
+      themeConfig,
+      name,
+      Boolean(makeActive)
+    );
     return NextResponse.json(
       { success: true, record: savedRecord },
       { status: 200 }

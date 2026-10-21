@@ -164,6 +164,25 @@ export default function ResumeStudioClient({
   const [savedPresets, setSavedPresets] = useState<ResumeStyleSetting[]>(
     initialSavedSettings || []
   );
+
+  // Selected persona state (which persona is currently selected and showing in Live View)
+  const initialActive = (initialSavedSettings || []).find((p) => p.is_active);
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
+    initialActive?.id || initialSavedSettings?.[0]?.id || null
+  );
+
+  // Baselines for undoing unsaved changes (Reset)
+  const baselineThemeRef = useRef<ResumeThemeConfig>(
+    JSON.parse(JSON.stringify(initialActive?.theme_config || initialThemeConfig))
+  );
+  const baselineFormDataRef = useRef<Resume>(
+    JSON.parse(
+      JSON.stringify(
+        initialBaseResume?.name ? initialBaseResume : SAMPLE_RESUME_DATA
+      )
+    )
+  );
+
   const [newPresetName, setNewPresetName] = useState("");
   const [isSavingPreset, setIsSavingPreset] = useState(false);
 
@@ -229,7 +248,15 @@ export default function ResumeStudioClient({
   const handleSelectPreset = (presetId: string) => {
     const selected = RESUME_PRESETS.find((p) => p.id === presetId);
     if (selected) {
-      setTheme({ ...selected.config });
+      const cloned = JSON.parse(JSON.stringify(selected.config));
+      setTheme(cloned);
+      if (!selectedPersonaId) {
+        baselineThemeRef.current = JSON.parse(JSON.stringify(cloned));
+      }
+      setToast({
+        message: `Applied "${selected.name}" preset to Live View.`,
+        type: "success",
+      });
     }
   };
 
@@ -306,16 +333,43 @@ export default function ResumeStudioClient({
     }));
   };
 
-  const handleResetStyle = () => {
-    setTheme({ ...DEFAULT_THEME_CONFIG });
-    setToast({ message: "Reset styling to default Modern Tech preset.", type: "success" });
+  // --- Reset Handler: Reverts unsaved changes back to the selected persona and baseline profile ---
+  const handleResetToBaseline = () => {
+    // Revert style to baseline for the selected persona
+    setTheme(JSON.parse(JSON.stringify(baselineThemeRef.current)));
+    // Revert form data to baseline
+    setFormData(JSON.parse(JSON.stringify(baselineFormDataRef.current)));
+
+    const personaName =
+      savedPresets.find((p) => p.id === selectedPersonaId)?.name ||
+      (theme.preset ? `${theme.preset} Preset` : "Selected Persona");
+
+    setToast({
+      message: `Reverted unsaved changes back to "${personaName}".`,
+      type: "success",
+    });
   };
 
   // --- Saved Personas Handlers ---
-  const handleActivateSavedPreset = async (presetRecord: ResumeStyleSetting) => {
+  const handleSelectPersona = (sp: ResumeStyleSetting) => {
+    if (!sp.id) return;
+    setSelectedPersonaId(sp.id);
+    const cloned = JSON.parse(JSON.stringify(sp.theme_config));
+    setTheme(cloned);
+    baselineThemeRef.current = JSON.parse(JSON.stringify(cloned));
+    setToast({
+      message: `Loaded persona "${sp.name}" into Live View.`,
+      type: "success",
+    });
+  };
+
+  const handleActivateSavedPreset = async (
+    presetRecord: ResumeStyleSetting,
+    e?: React.MouseEvent
+  ) => {
+    if (e) e.stopPropagation();
     if (!presetRecord.id) return;
     try {
-      setTheme({ ...presetRecord.theme_config });
       const res = await fetch("/api/resume-style", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -329,7 +383,7 @@ export default function ResumeStudioClient({
           }))
         );
         setToast({
-          message: `Activated persona "${presetRecord.name}"!`,
+          message: `Persona "${presetRecord.name}" is now the active default!`,
           type: "success",
         });
       }
@@ -351,19 +405,20 @@ export default function ResumeStudioClient({
           action: "save",
           themeConfig: theme,
           name: finalName,
+          makeActive: savedPresets.length === 0,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to save persona");
 
       if (data.record) {
-        setSavedPresets((prev) => [
-          data.record,
-          ...prev.map((p) => ({ ...p, is_active: false })),
-        ]);
+        const newRecord: ResumeStyleSetting = data.record;
+        setSavedPresets((prev) => [newRecord, ...prev]);
+        setSelectedPersonaId(newRecord.id || null);
+        baselineThemeRef.current = JSON.parse(JSON.stringify(newRecord.theme_config));
         setNewPresetName("");
         setToast({
-          message: `Saved persona "${finalName}" successfully!`,
+          message: `Saved and selected new persona "${finalName}"!`,
           type: "success",
         });
       }
@@ -377,7 +432,12 @@ export default function ResumeStudioClient({
     }
   };
 
-  const handleDeleteSavedPreset = async (id: string, name: string) => {
+  const handleDeleteSavedPreset = async (
+    id: string,
+    name: string,
+    e?: React.MouseEvent
+  ) => {
+    if (e) e.stopPropagation();
     try {
       const res = await fetch("/api/resume-style", {
         method: "POST",
@@ -386,6 +446,18 @@ export default function ResumeStudioClient({
       });
       if (res.ok) {
         setSavedPresets((prev) => prev.filter((p) => p.id !== id));
+        if (selectedPersonaId === id) {
+          const remaining = savedPresets.filter((p) => p.id !== id);
+          if (remaining.length > 0) {
+            setSelectedPersonaId(remaining[0].id || null);
+            setTheme(remaining[0].theme_config);
+            baselineThemeRef.current = JSON.parse(
+              JSON.stringify(remaining[0].theme_config)
+            );
+          } else {
+            setSelectedPersonaId(null);
+          }
+        }
         setToast({
           message: `Deleted persona "${name}".`,
           type: "success",
@@ -397,6 +469,7 @@ export default function ResumeStudioClient({
   };
 
   // --- UNIFIED SAVE: Saves BOTH base resume content AND style settings ---
+  // Style is saved specifically to the SELECTED persona!
   const handleSaveAll = async () => {
     setIsSavingAll(true);
     setToast(null);
@@ -410,20 +483,49 @@ export default function ResumeStudioClient({
         ...cleanData
       } = formData;
 
-      const [resContent, resStyle] = await Promise.all([
-        fetch("/api/base-resume", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(cleanData),
-        }),
-        fetch("/api/resume-style", {
+      // 1. Content Save (global master resume)
+      const contentPromise = fetch("/api/base-resume", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cleanData),
+      });
+
+      // 2. Style Save (saved to the SELECTED persona)
+      let stylePromise: Promise<Response>;
+      const selectedPersona = savedPresets.find(
+        (p) => p.id === selectedPersonaId
+      );
+
+      if (selectedPersonaId && selectedPersona) {
+        stylePromise = fetch("/api/resume-style", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            action: "update",
+            id: selectedPersonaId,
             themeConfig: theme,
-            name: theme.preset === "custom" ? "Custom User Style" : theme.preset,
+            name: selectedPersona.name,
           }),
-        }),
+        });
+      } else {
+        stylePromise = fetch("/api/resume-style", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "save",
+            themeConfig: theme,
+            name:
+              theme.preset === "custom"
+                ? "Custom Persona"
+                : `${theme.preset} Persona`,
+            makeActive: savedPresets.length === 0,
+          }),
+        });
+      }
+
+      const [resContent, resStyle] = await Promise.all([
+        contentPromise,
+        stylePromise,
       ]);
 
       if (!resContent.ok) {
@@ -432,11 +534,34 @@ export default function ResumeStudioClient({
       }
       if (!resStyle.ok) {
         const err = await resStyle.json().catch(() => null);
-        throw new Error(err?.error || "Failed to save resume style settings");
+        throw new Error(err?.error || "Failed to save persona style settings");
       }
 
+      const styleData = await resStyle.json();
+
+      // Update baselines
+      baselineFormDataRef.current = JSON.parse(JSON.stringify(formData));
+      baselineThemeRef.current = JSON.parse(JSON.stringify(theme));
+
+      if (styleData.record) {
+        const updatedRecord: ResumeStyleSetting = styleData.record;
+        setSavedPresets((prev) => {
+          const index = prev.findIndex((p) => p.id === updatedRecord.id);
+          if (index >= 0) {
+            const next = [...prev];
+            next[index] = updatedRecord;
+            return next;
+          }
+          return [updatedRecord, ...prev];
+        });
+        if (!selectedPersonaId && updatedRecord.id) {
+          setSelectedPersonaId(updatedRecord.id);
+        }
+      }
+
+      const targetPersonaName = selectedPersona?.name || "Selected Persona";
       setToast({
-        message: "Resume Studio saved! Both profile content and styling updated.",
+        message: `Saved all changes! Profile content updated, and design saved to "${targetPersonaName}".`,
         type: "success",
       });
     } catch (err: any) {
@@ -706,52 +831,71 @@ export default function ResumeStudioClient({
 
                 {/* List of Saved Personas */}
                 {savedPresets.length > 0 && (
-                  <div className="space-y-2 pt-1 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                  <div className="space-y-2 pt-1 max-h-56 overflow-y-auto custom-scrollbar pr-1">
                     {savedPresets.map((sp) => {
                       const isActive = sp.is_active;
+                      const isSelected = selectedPersonaId === sp.id;
                       return (
                         <div
                           key={sp.id}
-                          className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition-all ${
-                            isActive
-                              ? "border-violet-600 bg-violet-50/60 shadow-xs"
-                              : "border-gray-200 hover:border-gray-300 bg-gray-50/40"
+                          onClick={() => handleSelectPersona(sp)}
+                          className={`p-3 rounded-xl border text-xs transition-all cursor-pointer ${
+                            isSelected
+                              ? "border-violet-600 bg-violet-50/80 ring-2 ring-violet-500/30 shadow-xs"
+                              : "border-gray-200 hover:border-violet-300 hover:bg-gray-50/80 bg-white"
                           }`}
                         >
-                          <div className="flex-1 min-w-0 mr-2">
-                            <div className="flex items-center gap-1.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 min-w-0 mr-2 flex-wrap">
                               <span className="font-semibold text-gray-900 truncate">
                                 {sp.name}
                               </span>
                               {isActive && (
-                                <span className="px-1.5 py-0.2 text-[9px] font-bold bg-violet-600 text-white rounded-full">
-                                  Active
+                                <span className="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-600 text-white rounded-md shrink-0 flex items-center gap-1">
+                                  <Check className="w-2.5 h-2.5" />
+                                  Active Default
+                                </span>
+                              )}
+                              {isSelected && (
+                                <span className="px-1.5 py-0.5 text-[9px] font-bold bg-violet-600 text-white rounded-md shrink-0">
+                                  Live View
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-gray-400">
-                              Preset: {sp.preset}
-                            </span>
-                          </div>
 
-                          <div className="flex items-center gap-1 shrink-0">
-                            {!isActive && (
+                            <div
+                              className="flex items-center gap-1.5 shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {!isActive && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleActivateSavedPreset(sp, e)}
+                                  className="px-2 py-1 text-[11px] font-semibold text-emerald-700 bg-white hover:bg-emerald-50 border border-emerald-200 rounded-lg transition-colors"
+                                  title="Set as global active default for AI job generation"
+                                >
+                                  Set as Active
+                                </button>
+                              )}
                               <button
                                 type="button"
-                                onClick={() => handleActivateSavedPreset(sp)}
-                                className="px-2 py-1 text-[11px] font-medium text-violet-700 bg-white hover:bg-violet-100 border border-violet-200 rounded-lg transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (sp.id) handleDeleteSavedPreset(sp.id, sp.name, e);
+                                }}
+                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete Persona"
                               >
-                                Activate
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => sp.id && handleDeleteSavedPreset(sp.id, sp.name)}
-                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete Persona"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            </div>
+                          </div>
+
+                          <div className="mt-1 flex items-center justify-between text-[11px] text-gray-400">
+                            <span>Preset: {sp.preset}</span>
+                            <span className="text-[10px] font-medium text-violet-600">
+                              {isSelected ? "● Selected & Live" : "Click to view & edit"}
+                            </span>
                           </div>
                         </div>
                       );
@@ -1393,18 +1537,6 @@ export default function ResumeStudioClient({
                   })}
                 </div>
               </div>
-
-              {/* Reset to Default Style */}
-              <div className="pt-1 flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleResetStyle}
-                  className="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors flex items-center gap-1.5"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset Style to Default</span>
-                </button>
-              </div>
             </div>
           )}
 
@@ -1413,9 +1545,20 @@ export default function ResumeStudioClient({
             <div className="p-2.5 rounded-2xl bg-white/95 backdrop-blur-md border border-gray-200 shadow-lg flex items-center gap-2">
               <button
                 type="button"
+                onClick={handleResetToBaseline}
+                disabled={isSavingAll}
+                className="py-2.5 px-3 text-xs font-semibold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 border border-gray-200 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0"
+                title="Undo unsaved changes since last save"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-gray-500" />
+                <span>Reset Changes</span>
+              </button>
+
+              <button
+                type="button"
                 disabled={isSavingAll}
                 onClick={handleSaveAll}
-                className="flex-1 py-2 px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
               >
                 {isSavingAll ? (
                   <>

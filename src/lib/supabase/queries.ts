@@ -994,25 +994,70 @@ export async function saveActiveResumeStyle(
   themeConfig: ResumeThemeConfig,
   name?: string
 ): Promise<ResumeStyleSetting> {
-  const supabase = createSupabaseStaticClient();
+  return saveResumeStyleSetting(themeConfig, name, true);
+}
 
-  // Deactivate any currently active settings
-  try {
-    await supabase
-      .from("resume_style_settings")
-      .update({ is_active: false })
-      .eq("is_active", true);
-  } catch (err) {
-    console.warn("Warning deactivating previous style settings:", err);
+/**
+ * Updates an existing resume style persona by ID (without changing its active status).
+ */
+export async function updateResumeStyleById(
+  id: string,
+  themeConfig: ResumeThemeConfig,
+  name?: string
+): Promise<ResumeStyleSetting> {
+  const supabase = createSupabaseStaticClient();
+  const updatePayload: any = {
+    theme_config: themeConfig,
+    preset: themeConfig.preset || "custom",
+    updated_at: new Date().toISOString(),
+  };
+  if (name) {
+    updatePayload.name = name;
   }
 
-  // Insert the new active setting
+  const { data, error } = await supabase
+    .from("resume_style_settings")
+    .update(updatePayload)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Failed to update resume style setting:", error);
+    throw new Error(`Failed to update resume style setting: ${error.message}`);
+  }
+
+  return data as ResumeStyleSetting;
+}
+
+/**
+ * Saves a new resume style configuration, optionally activating it.
+ */
+export async function saveResumeStyleSetting(
+  themeConfig: ResumeThemeConfig,
+  name?: string,
+  makeActive: boolean = false
+): Promise<ResumeStyleSetting> {
+  const supabase = createSupabaseStaticClient();
+
+  if (makeActive) {
+    try {
+      await supabase
+        .from("resume_style_settings")
+        .update({ is_active: false })
+        .eq("is_active", true);
+    } catch (err) {
+      console.warn("Warning deactivating previous style settings:", err);
+    }
+  }
+
+  // Insert the setting
   const { data, error } = await supabase
     .from("resume_style_settings")
     .insert({
       name: name || themeConfig.preset || "Custom Style",
       preset: themeConfig.preset || "custom",
-      is_active: true,
+      is_active: makeActive,
       theme_config: themeConfig,
       updated_at: new Date().toISOString(),
     })
