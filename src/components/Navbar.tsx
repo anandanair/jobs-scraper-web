@@ -7,12 +7,11 @@ import {
   Briefcase,
   Home,
   Star,
-  User,
   Zap,
   CheckSquare,
   Menu,
   X,
-  Palette,
+  Sparkles,
 } from "lucide-react";
 
 export default function Navbar() {
@@ -50,9 +49,19 @@ export default function Navbar() {
     { href: "/jobs/top-matches", icon: <Star size={18} />, text: "Matches" },
     { href: "/jobs/new", icon: <Zap size={18} />, text: "New" },
     { href: "/jobs/applied", icon: <CheckSquare size={18} />, text: "Applied" },
-    { href: "/profile", icon: <User size={18} />, text: "Profile" },
-    { href: "/resume-style", icon: <Palette size={18} />, text: "Resume Style" },
+    { href: "/resume-studio", icon: <Sparkles size={18} />, text: "Resume Studio" },
   ];
+
+  const isItemActive = (href: string) => {
+    if (href === "/resume-studio") {
+      return (
+        pathname.startsWith("/resume-studio") ||
+        pathname === "/profile" ||
+        pathname === "/resume-style"
+      );
+    }
+    return pathname === href;
+  };
 
   return (
     <>
@@ -87,7 +96,7 @@ export default function Navbar() {
                   href={item.href}
                   icon={item.icon}
                   text={item.text}
-                  isActive={pathname === item.href}
+                  isActive={isItemActive(item.href)}
                 />
               ))}
             </div>
@@ -135,7 +144,7 @@ export default function Navbar() {
                 href={item.href}
                 icon={item.icon}
                 text={item.text}
-                isActive={pathname === item.href}
+                isActive={isItemActive(item.href)}
                 onClick={() => setIsMenuOpen(false)}
               />
             ))}
