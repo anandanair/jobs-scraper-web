@@ -2,21 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import {
   ExternalLink,
   CheckCircle,
-  ThumbsUp,
-  ThumbsDown,
   BuildingIcon,
   MapPinIcon,
   BarChart3Icon,
   FileText,
   Link as SocialLink,
-  AlertTriangle,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
-import MarkdownRenderer from "./MarkdownRenderer"; // Assuming this is in the same directory or adjust path
-import { Job } from "@/types"; // Assuming types are defined here
+import MarkdownRenderer from "./MarkdownRenderer";
+import { Job } from "@/types";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface JobDetailsClientProps {
   initialJob: Job;
@@ -28,17 +27,87 @@ export default function JobDetailsClient({
   const [job, setJob] = useState<Job>(initialJob);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingInterest, setIsUpdatingInterest] = useState(false);
+  const [isGeneratingResume, setIsGeneratingResume] = useState(false);
+  const [isRescoring, setIsRescoring] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const hasCustomResume = Boolean(
+    job.customized_resume_id ||
+    job.resume_link ||
+    job.customized_resumes?.resume_link
+  );
+
+  // Rescore is ONLY available if a custom resume exists and the score is still based on the initial base resume
+  const canRescore = Boolean(hasCustomResume && job.resume_score_stage === "initial");
 
   const handleViewResume = (
     job_id: string,
     resume_id: string | null | undefined
   ) => {
     const params = new URLSearchParams(searchParams.toString());
-    // Optionally preserve other query params if needed when navigating
     params.set("source", window.location.pathname);
     router.push(`/jobs/${job_id}/resumes/${resume_id}?${params.toString()}`);
+  };
+
+  const handleGenerateCustomResume = async () => {
+    setIsGeneratingResume(true);
+    try {
+      const res = await fetch(`/api/jobs/${job.job_id}/customize-resume`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.details || "Failed to customize resume");
+      }
+
+      setJob((prev) => ({
+        ...prev,
+        customized_resume_id: data.customized_resume_id,
+        customized_resumes: {
+          ...(prev.customized_resumes || ({} as any)),
+          resume_link: data.resume_link,
+        },
+        resume_score: data.resume_score ?? prev.resume_score,
+        resume_score_stage: data.resume_score_stage ?? prev.resume_score_stage,
+      }));
+
+      showToast("Custom resume generated and job rescored successfully!", "success");
+      router.refresh();
+    } catch (err: any) {
+      console.error("Error generating custom resume:", err);
+      showToast(err.message, "error");
+    } finally {
+      setIsGeneratingResume(false);
+    }
+  };
+
+  const handleRescore = async () => {
+    if (!canRescore) return;
+    setIsRescoring(true);
+    try {
+      const res = await fetch(`/api/jobs/${job.job_id}/rescore`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.details || "Failed to rescore job");
+      }
+
+      setJob((prev) => ({
+        ...prev,
+        resume_score: data.resume_score,
+        resume_score_stage: data.resume_score_stage,
+      }));
+
+      showToast(`Job rescored with custom resume! New score: ${data.resume_score}/100`, "success");
+      router.refresh();
+    } catch (err: any) {
+      console.error("Error rescoring job:", err);
+      showToast(err.message, "error");
+    } finally {
+      setIsRescoring(false);
+    }
   };
 
   const handleMarkAsApplied = async () => {
@@ -70,7 +139,7 @@ export default function JobDetailsClient({
       const updatedJob: Job = await response.json();
       setJob(updatedJob);
       showToast("Job marked as applied successfully!", "success");
-      router.refresh(); // Refresh server-side props if needed, or update state locally
+      router.refresh();
     } catch (error) {
       console.error("Error marking job as applied:", error);
       const message =
@@ -81,66 +150,15 @@ export default function JobDetailsClient({
     }
   };
 
-  const handleSetInterest = async (newInterestValue: boolean | null) => {
-    setIsUpdatingInterest(true);
-    let finalInterestValue: boolean | null;
-
-    if (job.is_interested === newInterestValue) {
-      finalInterestValue = null;
-    } else {
-      finalInterestValue = newInterestValue;
-    }
-
-    try {
-      const response = await fetch(`/api/jobs/${job.job_id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          is_interested: finalInterestValue,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        const errorMessage =
-          errorData?.error || `HTTP error! status: ${response.status}`;
-        throw new Error(errorMessage);
-      }
-
-      const updatedJob: Job = await response.json();
-      setJob(updatedJob);
-
-      const message =
-        finalInterestValue === true
-          ? "Marked as interested"
-          : finalInterestValue === false
-          ? "Marked as not interested"
-          : "Interest status cleared";
-      showToast(message, "success");
-      router.refresh();
-    } catch (error) {
-      console.error("Error updating job interest:", error);
-      const message =
-        error instanceof Error ? error.message : "An unknown error occurred.";
-      showToast(`Error: ${message}`, "error");
-    } finally {
-      setIsUpdatingInterest(false);
-    }
-  };
-
   const showToast = (message: string, type: "success" | "error") => {
-    // Placeholder for a proper toast library
     console.log(`Toast (${type}): ${message}`);
     if (type === "error") {
       alert(`Error: ${message}`);
     } else {
-      alert(message); // Simple alert for success for now
+      alert(message);
     }
   };
 
-  // Determine the job listing URL based on the provider
   let jobUrl;
   if (job.provider === "careers_future") {
     jobUrl = `https://www.mycareersfuture.gov.sg/job/${job.job_id}`;
@@ -177,26 +195,48 @@ export default function JobDetailsClient({
             </div>
           </div>
 
-          {job.resume_score && (
-            <div className="flex-shrink-0 mt-4 sm:mt-0">
-              <div className="flex items-center space-x-2 bg-indigo-50 px-4 py-2.5 rounded-lg border border-indigo-200">
-                <BarChart3Icon className="h-6 w-6 text-indigo-600" />
+          {/* Prominent Score & Stage Display */}
+          <div className="flex-shrink-0 mt-4 sm:mt-0 flex items-center space-x-3">
+            {job.resume_score !== undefined && job.resume_score !== null ? (
+              <div className="flex items-center space-x-3 bg-white px-4 py-3 rounded-xl border border-gray-200 shadow-sm">
+                <div
+                  className={`p-2.5 rounded-lg ${
+                    job.resume_score_stage === "custom"
+                      ? "bg-emerald-50 text-emerald-600"
+                      : "bg-indigo-50 text-indigo-600"
+                  }`}
+                >
+                  <BarChart3Icon className="h-6 w-6" />
+                </div>
                 <div>
-                  <div className="flex items-baseline">
-                    <span className="text-2xl font-semibold text-indigo-700">
+                  <div className="flex items-baseline space-x-1.5">
+                    <span className="text-2xl font-bold text-gray-900">
                       {job.resume_score}
                     </span>
-                    <span className="ml-1 text-sm text-indigo-500">/100</span>
+                    <span className="text-sm font-medium text-gray-400">/100</span>
                   </div>
-                  {job.resume_score_stage && (
-                    <span className="text-xs text-indigo-500 block capitalize">
-                      {job.resume_score_stage}
-                    </span>
-                  )}
+                  <div className="mt-1">
+                    {job.resume_score_stage === "custom" ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        ✨ Tailored Resume Score
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                        📄 Base Resume Score
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center space-x-2 bg-gray-50 px-4 py-3 rounded-xl border border-gray-200">
+                <BarChart3Icon className="h-6 w-6 text-gray-400" />
+                <div>
+                  <span className="text-sm font-medium text-gray-500">Not Scored</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Action buttons */}
@@ -211,18 +251,55 @@ export default function JobDetailsClient({
             <ExternalLink size={16} className="ml-2" />
           </Link>
 
-          {job.customized_resumes?.resume_link && job.customized_resume_id && (
+          {/* View Customized Resume (if available) */}
+          {hasCustomResume ? (
             <button
               onClick={() =>
-                handleViewResume(job.job_id, job.customized_resume_id)
+                handleViewResume(
+                  job.job_id,
+                  job.customized_resume_id || (job.customized_resumes as any)?.id
+                )
               }
               className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
             >
               View Customized Resume
               <FileText size={16} className="ml-2" />
             </button>
+          ) : (
+            <button
+              onClick={handleGenerateCustomResume}
+              disabled={isGeneratingResume}
+              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+            >
+              <Sparkles
+                size={16}
+                className={`mr-2 ${isGeneratingResume ? "animate-spin" : ""}`}
+              />
+              {isGeneratingResume
+                ? "Tailoring Resume..."
+                : "Generate Custom Resume"}
+            </button>
           )}
 
+          {/* Rescore with Custom Resume: ONLY rendered if custom resume exists AND score stage is still initial */}
+          {canRescore && (
+            <button
+              onClick={handleRescore}
+              disabled={isRescoring}
+              className="inline-flex items-center px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50"
+              title="Rescore this job against your customized resume"
+            >
+              <RefreshCw
+                size={16}
+                className={`mr-2 ${isRescoring ? "animate-spin" : ""}`}
+              />
+              {isRescoring
+                ? "Rescoring with Custom Resume..."
+                : "Rescore with Custom Resume"}
+            </button>
+          )}
+
+          {/* Mark as Applied */}
           {job.status !== "applied" ? (
             <button
               onClick={handleMarkAsApplied}
@@ -238,61 +315,17 @@ export default function JobDetailsClient({
               Applied
             </div>
           )}
-
-          <div className="inline-flex rounded-md shadow-sm">
-            <button
-              onClick={() => handleSetInterest(true)}
-              disabled={isUpdatingInterest}
-              className={`relative inline-flex items-center px-3 py-2 rounded-l-md text-sm font-medium focus:z-10 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed
-                ${
-                  job.is_interested === true
-                    ? "bg-green-600 text-white hover:bg-green-700"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-            >
-              <ThumbsUp
-                size={16}
-                className="mr-2"
-                fill={job.is_interested === true ? "currentColor" : "none"}
-              />
-              Interested
-            </button>
-            <button
-              onClick={() => handleSetInterest(false)}
-              disabled={isUpdatingInterest}
-              className={`relative inline-flex items-center px-3 py-2 rounded-r-md text-sm font-medium focus:z-10 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed border-l border-gray-300
-                ${
-                  job.is_interested === false
-                    ? "bg-red-600 text-white hover:bg-red-700"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-            >
-              <ThumbsDown
-                size={16}
-                className="mr-2"
-                fill={job.is_interested === false ? "currentColor" : "none"}
-              />
-              Not Interested
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* Scrollable content for description */}
+      {/* Main content */}
       <div className="p-6">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
           Job Description
-        </h3>
-        {job.description ? (
-          <div className="prose max-w-none prose-sm sm:prose lg:prose-lg xl:prose-xl">
-            <MarkdownRenderer content={job.description} />
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center text-gray-500 py-10">
-            <AlertTriangle size={48} className="mb-4 text-yellow-500" />
-            <p className="text-lg">No description available for this job.</p>
-          </div>
-        )}
+        </h2>
+        <div className="prose max-w-none text-gray-700">
+          <MarkdownRenderer content={job.description} />
+        </div>
       </div>
     </div>
   );

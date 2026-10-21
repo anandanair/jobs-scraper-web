@@ -147,7 +147,7 @@ export async function getNewJobs(
 
   let query = supabase
     .from("jobs")
-    .select("*")
+    .select("*, customized_resumes(id, resume_link)")
     .eq("is_active", true)
     .eq("status", "new") // Filter by status
     .eq("job_state", "new");
@@ -382,7 +382,7 @@ export async function getJobById(job_id: string): Promise<Job | null> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("jobs")
-    .select("*, customized_resumes(resume_link)") // Fetches all job fields and the resume_link from the related customized_resume
+    .select("*, customized_resumes(id, resume_link)") // Fetches all job fields and the resume_link from the related customized_resume
     .eq("job_id", job_id)
     .single(); // Use single() if you expect only one or zero results
 

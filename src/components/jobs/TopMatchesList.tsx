@@ -13,6 +13,8 @@ import {
   BarChart3Icon,
   FileText,
   Link as SocialLink,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import MarkdownRenderer from "./MarkdownRenderer";
 import { Job } from "@/types";
@@ -32,6 +34,83 @@ export default function TopMatchesList({
   const [selectedJob, setSelectedJob] = useState<Job | null>(null); // Initialize as null
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingInterest, setIsUpdatingInterest] = useState(false);
+  const [isGeneratingResume, setIsGeneratingResume] = useState(false);
+  const [isRescoring, setIsRescoring] = useState(false);
+
+  const hasCustomResume = Boolean(
+    selectedJob?.customized_resume_id ||
+      selectedJob?.resume_link ||
+      (selectedJob?.customized_resumes &&
+        ((Array.isArray(selectedJob.customized_resumes) &&
+          selectedJob.customized_resumes.length > 0) ||
+          typeof selectedJob.customized_resumes === "object"))
+  );
+
+  const canRescore = Boolean(
+    hasCustomResume && selectedJob?.resume_score_stage === "initial"
+  );
+
+  const handleGenerateCustomResume = async () => {
+    if (!selectedJob) return;
+    setIsGeneratingResume(true);
+    try {
+      const res = await fetch(`/api/jobs/${selectedJob.job_id}/customize-resume`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.details || "Failed to customize resume");
+      }
+      setSelectedJob((prev) =>
+        prev
+          ? {
+              ...prev,
+              customized_resume_id: data.customized_resume_id,
+              resume_link: data.resume_link,
+              resume_score: data.resume_score ?? prev.resume_score,
+              resume_score_stage: data.resume_score_stage ?? prev.resume_score_stage,
+            }
+          : null
+      );
+      showToast("Custom resume generated and job rescored successfully!", "success");
+      router.refresh();
+    } catch (err: any) {
+      console.error("Error generating resume:", err);
+      showToast(err.message, "error");
+    } finally {
+      setIsGeneratingResume(false);
+    }
+  };
+
+  const handleRescore = async () => {
+    if (!selectedJob) return;
+    setIsRescoring(true);
+    try {
+      const res = await fetch(`/api/jobs/${selectedJob.job_id}/rescore`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.details || "Failed to rescore job");
+      }
+      setSelectedJob((prev) =>
+        prev
+          ? {
+              ...prev,
+              resume_score: data.resume_score,
+              resume_score_stage: data.resume_score_stage,
+            }
+          : null
+      );
+      showToast(`Job rescored! New score: ${data.resume_score}/100 (${data.resume_score_stage})`, "success");
+      router.refresh();
+    } catch (err: any) {
+      console.error("Error rescoring job:", err);
+      showToast(err.message, "error");
+    } finally {
+      setIsRescoring(false);
+    }
+  };
   const router = useRouter();
   const searchParams = useSearchParams(); // Get searchParams
 
@@ -270,19 +349,43 @@ export default function TopMatchesList({
                       </div>
                     </div>
 
-                    {job.resume_score && (
-                      <div
-                        className={`flex-shrink-0 ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium border ${getScoreBadgeColor(
-                          job.resume_score,
-                        )}`}
-                      >
-                        {job.resume_score}
+                    {job.resume_score !== undefined && job.resume_score !== null && (
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+                        <div
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getScoreBadgeColor(
+                            job.resume_score,
+                          )}`}
+                        >
+                          {job.resume_score}
+                        </div>
+                        {job.resume_score_stage === "custom" ? (
+                          <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded whitespace-nowrap">
+                            ✨ Tailored
+                          </span>
+                        ) : job.resume_score_stage === "initial" ? (
+                          <span className="text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded whitespace-nowrap">
+                            📄 Base
+                          </span>
+                        ) : null}
                       </div>
                     )}
                   </div>
 
                   {/* Status indicators */}
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {Boolean(
+                      job.customized_resume_id ||
+                        job.resume_link ||
+                        (job.customized_resumes &&
+                          ((Array.isArray(job.customized_resumes) &&
+                            job.customized_resumes.length > 0) ||
+                            typeof job.customized_resumes === "object"))
+                    ) && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Custom Resume
+                      </span>
+                    )}
                     {job.status === "applied" && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         <CheckCircle className="h-3 w-3 mr-1" />
@@ -350,27 +453,51 @@ export default function TopMatchesList({
                   </div>
                 </div>
 
-                {selectedJob.resume_score && (
-                  <div className="flex items-center space-x-1.5 bg-gray-50 px-3 py-2 rounded-lg">
-                    <BarChart3Icon className="h-4 w-4 text-gray-500" />
-                    <div>
-                      <div className="flex items-baseline">
-                        <span className="text-lg font-semibold text-gray-900">
-                          {selectedJob.resume_score}
-                        </span>
-                        <span className="ml-1 text-xs text-gray-500">/100</span>
+                {/* Prominent Score & Stage Display */}
+                <div className="flex-shrink-0 flex items-center space-x-3">
+                  {selectedJob.resume_score !== undefined &&
+                  selectedJob.resume_score !== null ? (
+                    <div className="flex items-center space-x-3 bg-white px-3.5 py-2 rounded-xl border border-gray-200 shadow-sm">
+                      <div
+                        className={`p-2 rounded-lg ${
+                          selectedJob.resume_score_stage === "custom"
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "bg-indigo-50 text-indigo-600"
+                        }`}
+                      >
+                        <BarChart3Icon className="h-5 w-5" />
                       </div>
-                      {selectedJob.resume_score_stage && (
-                        <span className="text-xs text-gray-500 block">
-                          {selectedJob.resume_score_stage
-                            .charAt(0)
-                            .toUpperCase() +
-                            selectedJob.resume_score_stage.slice(1)}
-                        </span>
-                      )}
+                      <div>
+                        <div className="flex items-baseline space-x-1">
+                          <span className="text-xl font-bold text-gray-900">
+                            {selectedJob.resume_score}
+                          </span>
+                          <span className="text-xs font-medium text-gray-400">
+                            /100
+                          </span>
+                        </div>
+                        <div className="mt-0.5">
+                          {selectedJob.resume_score_stage === "custom" ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              ✨ Tailored Resume Score
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                              📄 Base Resume Score
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+                      <BarChart3Icon className="h-5 w-5 text-gray-400" />
+                      <span className="text-xs font-medium text-gray-500">
+                        Not Scored
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Action buttons */}
@@ -398,19 +525,50 @@ export default function TopMatchesList({
                   );
                 })()}
 
-                {selectedJob.resume_link && (
+                {hasCustomResume ? (
                   <button
                     onClick={() =>
                       handleViewResume(
                         selectedJob.job_id,
-                        selectedJob.customized_resume_id,
+                        selectedJob.customized_resume_id ||
+                          (selectedJob.customized_resumes as any)?.id,
                       )
                     }
-                    className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                    className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 cursor-pointer"
                   >
-                    View Resume
+                    View Customized Resume
                     <FileText size={16} className="ml-2" />
-                    {/* You can add an icon here too */}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleGenerateCustomResume}
+                    disabled={isGeneratingResume}
+                    className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 cursor-pointer"
+                  >
+                    <Sparkles
+                      size={16}
+                      className={`mr-2 ${isGeneratingResume ? "animate-spin" : ""}`}
+                    />
+                    {isGeneratingResume
+                      ? "Tailoring..."
+                      : "Generate Custom Resume"}
+                  </button>
+                )}
+
+                {canRescore && (
+                  <button
+                    onClick={handleRescore}
+                    disabled={isRescoring}
+                    className="inline-flex items-center px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 cursor-pointer"
+                    title="Rescore this job against your customized resume"
+                  >
+                    <RefreshCw
+                      size={16}
+                      className={`mr-2 ${isRescoring ? "animate-spin" : ""}`}
+                    />
+                    {isRescoring
+                      ? "Rescoring with Custom Resume..."
+                      : "Rescore with Custom Resume"}
                   </button>
                 )}
 
