@@ -4,6 +4,7 @@ import {
   getJobById,
   updateJobById,
   getUserProfileByEmail,
+  getActiveResumeStyle,
 } from "@/lib/supabase/queries";
 import { createSupabaseStaticClient } from "@/utils/supabase/server";
 import { customizeResumeWithLLM, formatResumeToText, scoreJobWithResume } from "@/lib/llm";
@@ -42,8 +43,9 @@ export async function POST(
       description: job.description,
     });
 
-    // 4. Build PDF buffer using matching PDFKit layout
-    const pdfBuffer = await buildPdfBuffer(customizedData);
+    // 4. Build PDF buffer using active saved resume style
+    const activeStyle = await getActiveResumeStyle();
+    const pdfBuffer = await buildPdfBuffer(customizedData, activeStyle);
 
     // 5. Upload PDF to Supabase Storage (personalized_resumes bucket)
     const destinationPath = `resume_${job_id}.pdf`;

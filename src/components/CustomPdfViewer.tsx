@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Sparkles } from "lucide-react";
 
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -28,6 +29,7 @@ export default function CustomPdfViewer({
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isRestyling, setIsRestyling] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [scale, setScale] = useState(1.1);
   const [thumbnails, setThumbnails] = useState<number[]>([]);
@@ -111,6 +113,30 @@ export default function CustomPdfViewer({
     const params = searchParams.toString();
     const query = params ? `?${params}` : "";
     router.push(`${window.location.pathname}/edit${query}`);
+  };
+
+  const handleReapplyStyle = async () => {
+    if (!resumeId || isRestyling) return;
+    setIsRestyling(true);
+    try {
+      const res = await fetch(`/api/customized_resumes/${resumeId}/reapply-style`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.details || "Failed to re-apply style");
+      }
+      if (data.signedUrl) {
+        const urlWithTimestamp = `${data.signedUrl}&t=${Date.now()}`;
+        setEffectiveFileUrl(urlWithTimestamp);
+        setIsLoading(true);
+      }
+    } catch (err: any) {
+      console.error("Error re-applying style:", err);
+      alert(err.message || "Failed to re-apply style");
+    } finally {
+      setIsRestyling(false);
+    }
   };
 
   const onClose = () => {
@@ -523,6 +549,22 @@ export default function CustomPdfViewer({
           </div>
 
           <div className="flex items-center space-x-3">
+            {resumeId && (
+              <button
+                onClick={handleReapplyStyle}
+                disabled={isRestyling}
+                title="Re-render this PDF using the latest active default resume style"
+                className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 font-medium text-sm flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+              >
+                {isRestyling ? (
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                )}
+                <span>Re-apply Style</span>
+              </button>
+            )}
+
             <button
               onClick={handleEditClick}
               className="px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl backdrop-blur-sm"

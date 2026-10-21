@@ -1,4 +1,5 @@
-import { Job, Resume, DashboardStats } from "@/types";
+import { Job, Resume, DashboardStats, ResumeThemeConfig, ResumeStyleSetting } from "@/types";
+import { DEFAULT_THEME_CONFIG } from "@/lib/resume-presets";
 import { createSupabaseServerClient, createSupabaseStaticClient } from "@/utils/supabase/server";
 import { unstable_cache } from "next/cache";
 import { PostgrestError } from "@supabase/supabase-js";
@@ -950,3 +951,148 @@ export const getCachedDashboardStats = unstable_cache(
     tags: ["dashboard-stats"],
   }
 );
+
+// --- Resume Style Settings Queries ---
+
+/**
+ * Fetches the active resume style settings from the 'resume_style_settings' table.
+ * If not configured or table does not exist, safely returns DEFAULT_THEME_CONFIG.
+ */
+export async function getActiveResumeStyle(): Promise<ResumeThemeConfig> {
+  try {
+    const supabase = createSupabaseStaticClient();
+    const { data, error } = await supabase
+      .from("resume_style_settings")
+      .select("*")
+      .eq("is_active", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.warn(
+        "Could not fetch resume style settings from Supabase, falling back to default:",
+        error.message
+      );
+      return DEFAULT_THEME_CONFIG;
+    }
+
+    if (data?.theme_config) {
+      return data.theme_config as ResumeThemeConfig;
+    }
+  } catch (err) {
+    console.warn("Error getting active resume style, using default:", err);
+  }
+  return DEFAULT_THEME_CONFIG;
+}
+
+/**
+ * Saves a new active resume style configuration to the 'resume_style_settings' table.
+ * Automatically deactivates previously active styles.
+ */
+export async function saveActiveResumeStyle(
+  themeConfig: ResumeThemeConfig,
+  name?: string
+): Promise<ResumeStyleSetting> {
+  const supabase = createSupabaseStaticClient();
+
+  // Deactivate any currently active settings
+  try {
+    await supabase
+      .from("resume_style_settings")
+      .update({ is_active: false })
+      .eq("is_active", true);
+  } catch (err) {
+    console.warn("Warning deactivating previous style settings:", err);
+  }
+
+  // Insert the new active setting
+  const { data, error } = await supabase
+    .from("resume_style_settings")
+    .insert({
+      name: name || themeConfig.preset || "Custom Style",
+      preset: themeConfig.preset || "custom",
+      is_active: true,
+      theme_config: themeConfig,
+      updated_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Failed to save resume style setting:", error);
+    throw new Error(`Failed to save resume style setting: ${error.message}`);
+  }
+
+  return data as ResumeStyleSetting;
+}
+
+/**
+ * Retrieves all saved resume style settings / presets from Supabase.
+ */
+export async function getAllResumeStyles(): Promise<ResumeStyleSetting[]> {
+  try {
+    const supabase = createSupabaseStaticClient();
+    const { data, error } = await supabase
+      .from("resume_style_settings")
+      .select("*")
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      console.warn("Could not fetch resume styles from Supabase:", error.message);
+      return [];
+    }
+
+    return (data || []) as ResumeStyleSetting[];
+  } catch (err) {
+    console.warn("Error fetching all resume styles:", err);
+    return [];
+  }
+}
+
+/**
+ * Activates a specific saved resume style setting by ID.
+ */
+export async function activateResumeStyleById(id: string): Promise<ResumeStyleSetting> {
+  const supabase = createSupabaseStaticClient();
+
+  // Deactivate all first
+  await supabase
+    .from("resume_style_settings")
+    .update({ is_active: false })
+    .neq("id", id);
+
+  // Activate the selected one
+  const { data, error } = await supabase
+    .from("resume_style_settings")
+    .update({ is_active: true, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Failed to activate resume style setting:", error);
+    throw new Error(`Failed to activate resume style setting: ${error.message}`);
+  }
+
+  return data as ResumeStyleSetting;
+}
+
+/**
+ * Deletes a custom saved resume style preset by ID.
+ */
+export async function deleteResumeStyleById(id: string): Promise<boolean> {
+  const supabase = createSupabaseStaticClient();
+  const { error } = await supabase
+    .from("resume_style_settings")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to delete resume style setting:", error);
+    throw new Error(`Failed to delete resume style setting: ${error.message}`);
+  }
+
+  return true;
+}
+

@@ -96,3 +96,62 @@ export interface DashboardStats {
   careersFutureJobsCount: number;
   appliedTodayCount: number;
 }
+
+// --- Resume Style & Theme Interfaces ---
+
+export type FontFamilyOption = "Helvetica" | "Times-Roman" | "Courier";
+export type FontSizeScaleOption = "compact" | "normal" | "spacious";
+export type LineSpacingOption = "tight" | "normal" | "relaxed";
+export type HeaderAlignmentOption = "left" | "center";
+export type HeaderStyleOption = "stacked_left" | "stacked_center" | "split_twocol";
+export type SkillsLayoutOption = "grid_3col" | "inline_wrap";
+export type MarginsOption = "compact" | "normal" | "wide";
+export type HeadingStyleOption = "underline" | "left_bar" | "shaded_pill" | "borderless";
+export type ResumeSectionKey =
+  | "summary"
+  | "skills"
+  | "experience"
+  | "education"
+  | "projects"
+  | "certifications"
+  | "languages";
+
+export interface ResumeThemeConfig {
+  preset: string;
+  typography: {
+    fontFamily: FontFamilyOption;
+    fontSizeScale: FontSizeScaleOption;
+    lineSpacing: LineSpacingOption;
+  };
+  colors: {
+    primary: string;
+    secondary: string;
+    text: string;
+    light: string;
+    divider: string;
+  };
+  layout: {
+    headerAlignment: HeaderAlignmentOption;
+    headerStyle?: HeaderStyleOption;
+    professionalTitle?: string;
+    showDividers: boolean;
+    dividerThickness: number;
+    skillsLayout: SkillsLayoutOption;
+    margins: MarginsOption;
+    headingStyle?: HeadingStyleOption;
+    sectionOrder: ResumeSectionKey[];
+    hiddenSections?: ResumeSectionKey[];
+    customSectionTitles?: Partial<Record<ResumeSectionKey, string>>;
+  };
+}
+
+export interface ResumeStyleSetting {
+  id?: string;
+  name: string;
+  preset: string;
+  is_active: boolean;
+  theme_config: ResumeThemeConfig;
+  created_at?: string;
+  updated_at?: string;
+}
+
