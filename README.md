@@ -2,12 +2,48 @@
 
 Job Scrapper Web is a modern Next.js dashboard application designed to track, manage, and optimize job applications scraped using the companion backend [Job Scraper](https://github.com/anandanair/job-scraper). 
 
-It allows users to review scraped job listings, mark application statuses, evaluate suitability using AI resume match scores, generate tailored resumes on-demand, and preview ATS-compliant PDFs directly in the browser.
+It allows users to review scraped job listings, mark application statuses, evaluate suitability using AI resume match scores, customize resumes with a full-featured **Resume Studio**, generate tailored resumes on-demand, and preview ATS-compliant PDFs directly in the browser with 1:1 typesetting calibration.
 
 ---
 
 ## Features
 
+### 📝 Resume Studio (`/resume-studio`)
+A unified master resume workspace that merges profile content editing and ATS styling into a single responsive interface:
+- **Dual-Mode Sidebar**:
+  - **📝 Resume Content**: Edit personal details, professional summary, work experience, education, projects, skills, languages, and certifications directly.
+  - **🎨 Design & Style**: Real-time visual control over typography, spacing, palettes, section decorations, and header layouts.
+- **Unified Save & Localized Reset**:
+  - `[ 💾 Save All Changes ]`: Atomically persists both master resume content (`/api/base-resume`) and persona styling changes (`/api/resume-style`) in one click.
+  - `[ ⟲ Reset Changes ]`: Resets any unsaved styling modifications back to the currently selected persona without losing content edits.
+- **Enhanced Contact & Social Links**:
+  - Vertical card layout with dedicated brand icons (LinkedIn, GitHub, Portfolio) and clean monospace URL inputs.
+- **TagListEditor (Skills, Languages, Technologies)**:
+  - Interactive tag chip input with instant comma and enter key support.
+  - Toggleable **Raw Text Mode** for quick copy-pasting and editing of comma-separated lists.
+
+### 🎨 ATS Design & Style System
+- **Preset & Custom Personas**:
+  - Built-in ATS-optimized presets: *Modern Tech*, *Executive Serif*, *Clean Minimalist*, and *Compact Data-Dense*.
+  - Create, save, rename, and delete custom personas (e.g., *Frontend Lead*, *Engineering Manager*) and set any persona as active default.
+  - **Live Persona Switching**: Clicking any persona instantly previews its layout and typography in the live canvas.
+- **Visual Design Controls**:
+  - **Typography**: Select font pairings (Sans-Serif / Inter, Serif / Merriweather), base font sizes (Small 9pt, Medium 10pt, Large 11pt), heading sizes, name sizes, and line spacing (1.15 to 1.4).
+  - **Margins & Spacing**: Switch between Compact (0.5"), Normal (0.75"), or Wide (1.0") page margins, and fine-tune section and item gap spacing.
+  - **Color Palette**: Choose primary accent colors (Navy, Slate, Emerald, Royal Blue, Charcoal, or Custom Hex) and customize divider line colors and thickness.
+  - **Section Heading Styles**: Choose between *Underline*, *Left Accent Bar*, *Shaded Pill*, or *Borderless*.
+  - **Contact Header Styles**: Choose between *Split 2-Column*, *Stacked Left*, or *Stacked Center*.
+  - **Section Reordering & Renaming**: Drag to reorder sections or override default headings (e.g., "Work History" instead of "Experience").
+
+### 📄 1:1 Typesetting & Orphan Heading Prevention
+- **Accurate 72 DPI Live Canvas**: Exact A4 canvas (595.28 × 841.89 pt) matching PDFKit's server-side geometry, complete with an interactive Page 1 boundary line indicator.
+- **Smart "Keep-With-Next" Lookahead**:
+  - **Role Header Clustering**: Experience entries require enough vertical clearance for the Job Title + Company/Location + first 1–2 bullets (~65–75 pt). If remaining page height is insufficient, the entire role header moves to Page 2 to prevent stranded titles.
+  - **Controlled Bullet Splitting**: Subsequent bullet points (bullets 3+) split cleanly across page boundaries, while individual bullet sentences are never sliced mid-line.
+  - **Section Heading Lookahead**: Section headings look ahead and require space for the Title + Divider Rule + first content item (~70–95 pt) before rendering, eliminating empty headings at the bottom of a page.
+  - **Atomic Compact Sections**: Education, Projects, and Certifications entries remain grouped as atomic blocks.
+
+### 🚀 Pipeline & AI Customization
 - **High-Performance Dashboard**: Instant overview with aggregate metrics (new jobs, applied jobs, top matches, daily applications) powered by an optimized PostgreSQL RPC function (`get_dashboard_stats`) and server-side tag caching.
 - **Job Listings & Pipeline Tracking**:
   - **New Jobs**: Browse freshly scraped job opportunities from LinkedIn and CareersFuture.
@@ -49,7 +85,7 @@ It allows users to review scraped job listings, mark application statuses, evalu
 1. **Node.js**: v20 or later.
 2. **Backend Setup (Crucial)**:
    - This web dashboard shares its database with the [Job Scraper Backend](https://github.com/anandanair/job-scraper).
-   - Ensure you have executed the complete [`supabase_setup/init.sql`](https://github.com/anandanair/job-scraper/blob/main/supabase_setup/init.sql) script in your **Supabase SQL Editor**. This creates all tables, indexes, storage buckets (`resumes`, `personalized_resumes`), and required RPC functions (such as `get_dashboard_stats` and `get_top_scored_jobs_custom_sort`).
+   - Ensure you have executed the complete [`supabase_setup/init.sql`](https://github.com/anandanair/job-scraper/blob/main/supabase_setup/init.sql) script in your **Supabase SQL Editor**. This creates all tables (`jobs`, `base_resume`, `customized_resumes`, `resume_style_settings`), indexes, storage buckets (`resumes`, `personalized_resumes`), and required RPC functions (such as `get_dashboard_stats` and `get_top_scored_jobs_custom_sort`).
 
 ---
 
@@ -119,19 +155,21 @@ Open [http://localhost:3000](http://localhost:3000) (or the port specified in te
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── base-resume/               # Base resume retrieval API
+│   │   │   ├── base-resume/               # Base resume retrieval (GET) & update (PATCH)
 │   │   │   ├── customized_resumes/        # Customized resume queries & signed URLs
-│   │   │   ├── generate-resume/           # PDFKit resume generator endpoint
+│   │   │   ├── generate-resume/           # PDFKit ATS resume compilation endpoint
 │   │   │   ├── jobs/
 │   │   │   │   └── [job_id]/
 │   │   │   │       ├── customize-resume/  # On-demand AI resume tailor + auto-rescore
 │   │   │   │       └── rescore/           # On-demand AI job rescoring
+│   │   │   ├── resume-style/              # Persona styling CRUD (GET, POST, PUT, DELETE)
 │   │   │   └── revalidate-stats/          # Cache revalidation route for dashboard stats
 │   │   ├── jobs/
 │   │   │   ├── applied/                   # Applied jobs tracking page
 │   │   │   ├── new/                       # Recently scraped jobs page
 │   │   │   ├── top-matches/               # High-scoring matched jobs page
 │   │   │   └── [job_id]/                  # Job details view & resume viewer/editor
+│   │   ├── resume-studio/                 # Unified Resume Studio (Content + ATS Design)
 │   │   ├── layout.tsx                     # Global layout & header navigation
 │   │   └── page.tsx                       # Homepage dashboard with cached RPC metrics
 │   ├── components/
@@ -140,15 +178,22 @@ Open [http://localhost:3000](http://localhost:3000) (or the port specified in te
 │   │   │   ├── JobDetailsClient.tsx       # Detailed job view with score badges & actions
 │   │   │   ├── PaginationControls.tsx     # Reusable pagination
 │   │   │   └── TopMatchesList.tsx         # Split-pane list & preview for New & Matched jobs
+│   │   ├── resume/
+│   │   │   └── TagListEditor.tsx          # Tag chip editor with comma support & raw text mode
+│   │   ├── resume-studio/
+│   │   │   ├── ContentTab.tsx             # Master resume content form editor
+│   │   │   ├── DesignTab.tsx              # ATS style controls, presets & persona manager
+│   │   │   ├── LivePreview.tsx            # Calibrated 72 DPI live canvas with page boundary
+│   │   │   └── ResumeStudioClient.tsx     # Studio container with unified save & local reset
 │   │   ├── CustomPdfViewer.tsx            # PDF viewing component
 │   │   └── Navbar.tsx                     # Top navigation bar
 │   ├── lib/
 │   │   ├── llm.ts                         # Universal LLM client (Fireworks AI & Gemini)
-│   │   ├── pdf.ts                         # PDFKit ATS resume document builder
+│   │   ├── pdf.ts                         # PDFKit ATS resume builder with orphan prevention
 │   │   └── supabase/
 │   │       ├── queries.ts                 # Database query helpers & RPC wrappers
 │   │       └── storage.ts                 # Supabase Storage signed URL utilities
-│   └── types.ts                           # TypeScript interfaces (Job, Resume, Experience, etc.)
+│   └── types.ts                           # TypeScript interfaces (Job, Resume, StyleConfig, etc.)
 ├── .env.local                             # Local environment variables (git-ignored)
 └── package.json
 ```
