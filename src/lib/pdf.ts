@@ -168,7 +168,7 @@ function ensureSpace(
   }
 }
 
-// --- Section heading with optional horizontal rule ---
+// --- Section heading with optional horizontal rule and orphan lookahead ---
 function drawSectionHeading(
   doc: PDFKit.PDFDocument,
   title: string,
@@ -176,9 +176,10 @@ function drawSectionHeading(
   fonts: ReturnType<typeof getFontFamilyNames>,
   sizes: ReturnType<typeof getFontSizes>,
   margins: ReturnType<typeof getMargins>,
-  contentWidth: number
+  contentWidth: number,
+  lookaheadHeight: number = 70
 ) {
-  ensureSpace(doc, 30, margins.bottom);
+  ensureSpace(doc, lookaheadHeight, margins.bottom);
   doc.moveDown(0.5);
 
   const headingStyle = theme.layout.headingStyle || "underline";
@@ -243,6 +244,17 @@ function drawSectionHeading(
   }
 }
 
+// --- Helper: extract bullet lines safely from description ---
+function getBulletLines(description: string): string[] {
+  if (description.includes("\n")) {
+    return description
+      .split("\n")
+      .map((b) => b.trim().replace(/^[•\-]\s*/, ""))
+      .filter(Boolean);
+  }
+  return splitIntoSentences(description).filter(Boolean);
+}
+
 // --- Bullet point text ---
 function drawBullet(
   doc: PDFKit.PDFDocument,
@@ -253,13 +265,21 @@ function drawBullet(
   margins: ReturnType<typeof getMargins>,
   contentWidth: number
 ) {
-  ensureSpace(doc, 16, margins.bottom);
   const lineGap =
     theme.typography.lineSpacing === "tight"
       ? 1
       : theme.typography.lineSpacing === "relaxed"
       ? 3
       : 2;
+
+  doc.font(fonts.regular).fontSize(sizes.body);
+  const bulletHeight = doc.heightOfString(`• ${text}`, {
+    width: contentWidth - 12,
+    lineGap,
+  });
+
+  // Ensure individual bullet doesn't split awkwardly across page bottom
+  ensureSpace(doc, bulletHeight + 2, margins.bottom);
 
   doc
     .font(fonts.regular)
@@ -282,26 +302,9 @@ function drawDescription(
   margins: ReturnType<typeof getMargins>,
   contentWidth: number
 ) {
-  if (description.includes("\n")) {
-    const bullets = description.split("\n");
-    for (const bullet of bullets) {
-      const trimmed = bullet.trim();
-      if (!trimmed) continue;
-      let bulletText = trimmed;
-      if (bulletText.startsWith("-")) {
-        bulletText = bulletText.substring(1).trim();
-      } else if (bulletText.startsWith("•")) {
-        bulletText = bulletText.substring(1).trim();
-      }
-      drawBullet(doc, bulletText, theme, fonts, sizes, margins, contentWidth);
-    }
-  } else {
-    const sentences = splitIntoSentences(description);
-    for (const sentence of sentences) {
-      if (sentence) {
-        drawBullet(doc, sentence, theme, fonts, sizes, margins, contentWidth);
-      }
-    }
+  const bullets = getBulletLines(description);
+  for (const bulletText of bullets) {
+    drawBullet(doc, bulletText, theme, fonts, sizes, margins, contentWidth);
   }
 }
 
@@ -318,9 +321,10 @@ function drawTwoColumnRow(
   rightColor: string,
   leftWidth: number,
   rightWidth: number,
-  margins: ReturnType<typeof getMargins>
+  margins: ReturnType<typeof getMargins>,
+  neededHeight: number = 20
 ) {
-  ensureSpace(doc, 20, margins.bottom);
+  ensureSpace(doc, neededHeight, margins.bottom);
   const startY = doc.y;
 
   // Draw left text
@@ -357,39 +361,41 @@ function renderSummary(
   contentWidth: number,
   title: string = "PROFESSIONAL SUMMARY"
 ) {
-  if (!isNA(resumeData.summary)) {
-    drawSectionHeading(
-      doc,
-      title,
-      theme,
-      fonts,
-      sizes,
-      margins,
-      contentWidth
-    );
+  if (!resumeData.summary || isNA(resumeData.summary)) return;
 
-    let cleanedSummary = resumeData.summary;
-    if (cleanedSummary.startsWith('"') && cleanedSummary.endsWith('"')) {
-      cleanedSummary = cleanedSummary.slice(1, -1);
-    }
+  drawSectionHeading(
+    doc,
+    title,
+    theme,
+    fonts,
+    sizes,
+    margins,
+    contentWidth,
+    60
+  );
 
-    const lineGap =
-      theme.typography.lineSpacing === "tight"
-        ? 1
-        : theme.typography.lineSpacing === "relaxed"
-        ? 3
-        : 2;
-
-    doc
-      .font(fonts.regular)
-      .fontSize(sizes.body)
-      .fillColor(theme.colors.text)
-      .text(cleanedSummary, margins.left, doc.y, {
-        width: contentWidth,
-        lineGap,
-      });
-    doc.y += 4;
+  let cleanedSummary = resumeData.summary.replace(/<\/?b>/g, "");
+  if (cleanedSummary.startsWith('"') && cleanedSummary.endsWith('"')) {
+    cleanedSummary = cleanedSummary.slice(1, -1);
   }
+
+  const lineGap =
+    theme.typography.lineSpacing === "tight"
+      ? 1
+      : theme.typography.lineSpacing === "relaxed"
+      ? 3
+      : 2;
+
+  ensureSpace(doc, 30, margins.bottom);
+  doc
+    .font(fonts.regular)
+    .fontSize(sizes.body)
+    .fillColor(theme.colors.text)
+    .text(cleanedSummary, margins.left, doc.y, {
+      width: contentWidth,
+      lineGap,
+    });
+  doc.y += 4;
 }
 
 function renderSkills(
@@ -413,12 +419,13 @@ function renderSkills(
     fonts,
     sizes,
     margins,
-    contentWidth
+    contentWidth,
+    65
   );
 
   if (theme.layout.skillsLayout === "inline_wrap") {
     // Render inline comma-separated or bullet-separated skills
-    ensureSpace(doc, 20, margins.bottom);
+    ensureSpace(doc, 22, margins.bottom);
     doc
       .font(fonts.regular)
       .fontSize(sizes.body)
@@ -478,6 +485,7 @@ function renderExperience(
 ) {
   if (!resumeData.experience || resumeData.experience.length === 0) return;
 
+  // Orphan prevention: section heading + first entry (title, company, 1-2 bullets) must fit together
   drawSectionHeading(
     doc,
     title,
@@ -485,8 +493,16 @@ function renderExperience(
     fonts,
     sizes,
     margins,
-    contentWidth
+    contentWidth,
+    95
   );
+
+  const lineGap =
+    theme.typography.lineSpacing === "tight"
+      ? 1
+      : theme.typography.lineSpacing === "relaxed"
+      ? 3
+      : 2;
 
   for (const exp of resumeData.experience) {
     const jobTitle = isNA(exp.job_title) ? "" : exp.job_title;
@@ -505,6 +521,39 @@ function renderExperience(
     const rightWidth = 2.0 * 72;
     const leftWidth = contentWidth - rightWidth;
 
+    // Calculate minimum keep-together height for this job entry:
+    // Header (Job Title + Dates + Company) + at least the first 1-2 bullet points
+    const bullets = !isNA(exp.description) ? getBulletLines(exp.description!) : [];
+    doc.font(fonts.regular).fontSize(sizes.body);
+
+    let firstBulletsHeight = 0;
+    if (bullets.length > 0) {
+      firstBulletsHeight +=
+        doc.heightOfString(`• ${bullets[0]}`, {
+          width: contentWidth - 12,
+          lineGap,
+        }) + 4;
+      if (bullets.length > 1) {
+        firstBulletsHeight +=
+          doc.heightOfString(`• ${bullets[1]}`, {
+            width: contentWidth - 12,
+            lineGap,
+          }) + 4;
+      }
+    } else {
+      firstBulletsHeight = 20;
+    }
+
+    const entryHeaderHeight =
+      sizes.jobTitle +
+      4 +
+      (companyLocation ? sizes.body + 6 : 0) +
+      firstBulletsHeight +
+      6;
+
+    // If Title + Company + first 1-2 bullets don't fit, start this job on the new page
+    ensureSpace(doc, entryHeaderHeight, margins.bottom);
+
     drawTwoColumnRow(
       doc,
       jobTitle,
@@ -517,7 +566,8 @@ function renderExperience(
       theme.colors.light,
       leftWidth,
       rightWidth,
-      margins
+      margins,
+      sizes.jobTitle + 2
     );
 
     // Company | Location
@@ -530,7 +580,7 @@ function renderExperience(
       doc.y += 4;
     }
 
-    // Description bullets
+    // Description bullets (will naturally split across pages if there are many bullets)
     if (!isNA(exp.description)) {
       drawDescription(
         doc,
@@ -566,7 +616,8 @@ function renderEducation(
     fonts,
     sizes,
     margins,
-    contentWidth
+    contentWidth,
+    70
   );
 
   for (const edu of resumeData.education) {
@@ -587,6 +638,9 @@ function renderEducation(
     const rightWidth = 1.8 * 72;
     const leftWidth = contentWidth - rightWidth;
 
+    // Keep entire education item together (Degree + Institution + Years)
+    ensureSpace(doc, 45, margins.bottom);
+
     drawTwoColumnRow(
       doc,
       degreeInfo,
@@ -599,7 +653,8 @@ function renderEducation(
       theme.colors.light,
       leftWidth,
       rightWidth,
-      margins
+      margins,
+      sizes.body + 2
     );
 
     if (!isNA(edu.institution)) {
@@ -633,28 +688,56 @@ function renderProjects(
     fonts,
     sizes,
     margins,
-    contentWidth
+    contentWidth,
+    75
   );
 
   for (const proj of resumeData.projects) {
-    if (!isNA(proj.name)) {
-      ensureSpace(doc, 20, margins.bottom);
-      doc
-        .font(fonts.bold)
-        .fontSize(sizes.jobTitle)
-        .fillColor(theme.colors.primary)
-        .text(proj.name, margins.left, doc.y, { width: contentWidth });
-      doc.y += 2;
-    }
+    if (isNA(proj.name)) continue;
 
-    if (
+    const projBullets = !isNA(proj.description)
+      ? getBulletLines(proj.description!)
+      : [];
+    doc.font(fonts.regular).fontSize(sizes.body);
+    const lineGap =
+      theme.typography.lineSpacing === "tight"
+        ? 1
+        : theme.typography.lineSpacing === "relaxed"
+        ? 3
+        : 2;
+    const firstBulletH =
+      projBullets.length > 0
+        ? doc.heightOfString(`• ${projBullets[0]}`, {
+            width: contentWidth - 12,
+            lineGap,
+          }) + 4
+        : 18;
+
+    const hasTech =
       proj.technologies &&
       proj.technologies.length > 0 &&
-      !(proj.technologies.length === 1 && proj.technologies[0] === "NA")
-    ) {
+      !(proj.technologies.length === 1 && proj.technologies[0] === "NA");
+
+    const projHeaderHeight =
+      sizes.jobTitle +
+      4 +
+      (hasTech ? sizes.meta + 5 : 0) +
+      firstBulletH +
+      6;
+
+    // Keep project title + technologies + first bullet together
+    ensureSpace(doc, projHeaderHeight, margins.bottom);
+
+    doc
+      .font(fonts.bold)
+      .fontSize(sizes.jobTitle)
+      .fillColor(theme.colors.primary)
+      .text(proj.name, margins.left, doc.y, { width: contentWidth });
+    doc.y += 2;
+
+    if (hasTech && proj.technologies) {
       const techList = proj.technologies.filter((t) => !isNA(t));
       if (techList.length > 0) {
-        ensureSpace(doc, 16, margins.bottom);
         doc
           .font(fonts.italic)
           .fontSize(sizes.meta)
@@ -702,7 +785,8 @@ function renderCertifications(
     fonts,
     sizes,
     margins,
-    contentWidth
+    contentWidth,
+    65
   );
 
   for (const cert of resumeData.certifications) {
@@ -713,6 +797,9 @@ function renderCertifications(
 
     const rightWidth = 1.8 * 72;
     const leftWidth = contentWidth - rightWidth;
+
+    // Keep entire certification entry together
+    ensureSpace(doc, 42, margins.bottom);
 
     drawTwoColumnRow(
       doc,
@@ -726,7 +813,8 @@ function renderCertifications(
       theme.colors.light,
       leftWidth,
       rightWidth,
-      margins
+      margins,
+      sizes.body + 2
     );
 
     if (!isNA(cert.issuer)) {
@@ -762,9 +850,11 @@ function renderLanguages(
     fonts,
     sizes,
     margins,
-    contentWidth
+    contentWidth,
+    55
   );
 
+  ensureSpace(doc, 25, margins.bottom);
   doc
     .font(fonts.regular)
     .fontSize(sizes.body)

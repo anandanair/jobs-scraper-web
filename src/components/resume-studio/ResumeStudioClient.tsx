@@ -1941,7 +1941,7 @@ export default function ResumeStudioClient({
 
                         <div className="space-y-2">
                           {formData.experience.map((exp, idx) => (
-                            <div key={idx}>
+                            <div key={idx} className="break-inside-avoid">
                               <div className="flex items-center justify-between">
                                 <span
                                   className="font-bold"
@@ -2006,7 +2006,7 @@ export default function ResumeStudioClient({
 
                         <div className="space-y-1.5">
                           {formData.education.map((edu, idx) => (
-                            <div key={idx}>
+                            <div key={idx} className="break-inside-avoid">
                               <div className="flex items-center justify-between">
                                 <span
                                   className="font-bold"
@@ -2053,7 +2053,7 @@ export default function ResumeStudioClient({
 
                         <div className="space-y-1.5">
                           {formData.projects.map((proj, idx) => (
-                            <div key={idx}>
+                            <div key={idx} className="break-inside-avoid">
                               <div
                                 className="font-bold"
                                 style={{
@@ -2097,7 +2097,7 @@ export default function ResumeStudioClient({
 
                         <div className="space-y-1">
                           {formData.certifications.map((cert, idx) => (
-                            <div key={idx} className="flex justify-between items-baseline">
+                            <div key={idx} className="flex justify-between items-baseline break-inside-avoid">
                               <div>
                                 <span
                                   className="font-bold"
@@ -2138,7 +2138,7 @@ export default function ResumeStudioClient({
                     if (!formData.languages || formData.languages.length === 0)
                       return null;
                     return (
-                      <div key="languages" className="mb-2.5">
+                      <div key="languages" className="mb-2.5 break-inside-avoid">
                         {renderCanvasSectionHeading(sectionHeading)}
                         <p style={{ fontSize: currentSizes.body }}>
                           {formData.languages.join(", ")}
