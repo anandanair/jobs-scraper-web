@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { updateJobById } from "@/lib/supabase/queries"; // Adjust path as needed
 import { Job } from "@/types";
 
@@ -31,6 +32,13 @@ export async function PATCH(
         { error: `Job with ID ${job_id} not found or update failed` },
         { status: 404 }
       );
+    }
+
+    // Invalidate dashboard stats cache so UI counters refresh immediately
+    try {
+      revalidateTag("dashboard-stats", "default");
+    } catch (e) {
+      console.warn("Failed to revalidate dashboard-stats tag:", e);
     }
 
     return NextResponse.json(updatedJob, { status: 200 });

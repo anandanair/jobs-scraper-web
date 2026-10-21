@@ -1,19 +1,5 @@
 import Link from "next/link";
-import {
-  getAllActiveJobsCount,
-  getAppliedJobsCount,
-  getTopScoredJobsCount,
-  getExpiredJobsCount,
-  getPendingScoreJobsCount,
-  getScoredJobsCount,
-  getCustomResumeJobsCount,
-  getNoCustomResumeJobsCount,
-  getScoredWithOriginalResumeCount,
-  getScoredWithCustomResumeCount,
-  getLinkedInJobsCount,
-  getCareersFutureJobsCount,
-  getAppliedJobsCountByDate, // Added import
-} from "@/lib/supabase/queries";
+import { getCachedDashboardStats } from "@/lib/supabase/queries";
 import {
   Briefcase,
   CheckSquare,
@@ -75,20 +61,6 @@ function StatCard({
 }
 
 export default async function Home() {
-  const totalNewJobs = await getAllActiveJobsCount();
-  const totalAppliedJobs = await getAppliedJobsCount();
-  const totalTopMatches = await getTopScoredJobsCount();
-  const expiredJobsCount = await getExpiredJobsCount();
-  const pendingScoreJobsCount = await getPendingScoreJobsCount();
-  const scoredJobsCount = await getScoredJobsCount();
-  const customResumeJobsCount = await getCustomResumeJobsCount();
-  const noCustomResumeJobsCount = await getNoCustomResumeJobsCount();
-  const scoredWithOriginalResumeCount =
-    await getScoredWithOriginalResumeCount();
-  const scoredWithCustomResumeCount = await getScoredWithCustomResumeCount();
-  const linkedInJobsCount = await getLinkedInJobsCount();
-  const careersFutureJobsCount = await getCareersFutureJobsCount();
-
   // Get server's current local date in YYYY-MM-DD format
   const now = new Date(); // Current date/time in server's local timezone
   const year = now.getFullYear();
@@ -97,9 +69,22 @@ export default async function Home() {
   const localToday = `${year}-${month}-${day}`; // e.g., "2025-05-21"
 
   console.log("Server's Local Date for Query:", localToday);
-  // Pass the server's local date to the query function
-  const appliedTodayCount = await getAppliedJobsCountByDate(localToday);
 
+  const {
+    totalNewJobs,
+    totalAppliedJobs,
+    totalTopMatches,
+    expiredJobsCount,
+    pendingScoreJobsCount,
+    scoredJobsCount,
+    customResumeJobsCount,
+    noCustomResumeJobsCount,
+    scoredWithOriginalResumeCount,
+    scoredWithCustomResumeCount,
+    linkedInJobsCount,
+    careersFutureJobsCount,
+    appliedTodayCount,
+  } = await getCachedDashboardStats(localToday);
   // Create a Date object from the localToday string for formatting the description.
   // new Date(localToday) will parse it as midnight in the server's local timezone.
   const dateForAppliedTodayDescription = new Date(localToday);

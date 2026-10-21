@@ -1,5 +1,6 @@
-import { Job, Resume } from "@/types";
-import { createSupabaseServerClient } from "@/utils/supabase/server";
+import { Job, Resume, DashboardStats } from "@/types";
+import { createSupabaseServerClient, createSupabaseStaticClient } from "@/utils/supabase/server";
+import { unstable_cache } from "next/cache";
 import { PostgrestError } from "@supabase/supabase-js";
 
 // Helper function to handle Supabase response errors
@@ -782,3 +783,170 @@ export async function getCareersFutureJobsCount(): Promise<number> {
   }
   return count ?? 0;
 }
+
+
+/**
+ * Fetches all 13 dashboard counts.
+ * Uses the Supabase RPC function 'get_dashboard_stats' if available (1 network round trip ~30ms),
+ * or gracefully falls back to parallel count queries via Promise.all.
+ */
+export async function getDashboardStats(
+  localDateString: string
+): Promise<DashboardStats> {
+  const supabase = createSupabaseStaticClient();
+
+  const startOfLocalDay = new Date(localDateString);
+  const startOfDayUTC = startOfLocalDay.toISOString();
+  const endOfLocalDay = new Date(localDateString);
+  endOfLocalDay.setDate(startOfLocalDay.getDate() + 1);
+  const startOfNextDayUTC = endOfLocalDay.toISOString();
+
+  try {
+    const { data, error } = await supabase.rpc("get_dashboard_stats", {
+      p_today_start: startOfDayUTC,
+      p_today_end: startOfNextDayUTC,
+    });
+
+    if (!error && data) {
+      return data as DashboardStats;
+    }
+  } catch (err) {
+    console.warn("RPC get_dashboard_stats call failed, falling back to parallel count queries:", err);
+  }
+
+  // Graceful fallback: parallel queries using static client (no cookies needed)
+  const appliedStatuses = ["applied", "interviewing", "offer"];
+
+  const [
+    totalNewJobsRes,
+    totalAppliedJobsRes,
+    totalTopMatchesRes,
+    expiredJobsRes,
+    pendingScoreJobsRes,
+    scoredJobsRes,
+    customResumeJobsRes,
+    noCustomResumeJobsRes,
+    scoredWithOriginalResumeRes,
+    scoredWithCustomResumeRes,
+    linkedInJobsRes,
+    careersFutureJobsRes,
+    appliedTodayRes,
+  ] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .eq("is_active", true)
+      .eq("status", "new")
+      .eq("job_state", "new"),
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .eq("is_active", true)
+      .in("status", appliedStatuses)
+      .eq("job_state", "new"),
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .eq("is_active", true)
+      .eq("status", "new")
+      .eq("job_state", "new")
+      .gte("resume_score", 50)
+      .lte("resume_score", 100),
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .eq("job_state", "expired"),
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .is("resume_score", null)
+      .eq("is_active", true)
+      .eq("status", "new")
+      .eq("job_state", "new"),
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .not("resume_score", "is", null)
+      .eq("is_active", true)
+      .eq("status", "new")
+      .eq("job_state", "new"),
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .not("customized_resume_id", "is", null)
+      .eq("is_active", true),
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .is("customized_resume_id", null)
+      .eq("is_active", true),
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .not("resume_score", "is", null)
+      .eq("resume_score_stage", "initial")
+      .eq("is_active", true)
+      .eq("status", "new")
+      .eq("job_state", "new"),
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .not("resume_score", "is", null)
+      .eq("resume_score_stage", "custom")
+      .eq("is_active", true)
+      .eq("status", "new")
+      .eq("job_state", "new"),
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .eq("provider", "linkedin")
+      .eq("is_active", true)
+      .eq("job_state", "new"),
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .eq("provider", "careers_future")
+      .eq("is_active", true)
+      .eq("job_state", "new"),
+    supabase
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .eq("is_active", true)
+      .in("status", appliedStatuses)
+      .eq("job_state", "new")
+      .gte("application_date", startOfDayUTC)
+      .lt("application_date", startOfNextDayUTC),
+  ]);
+
+  return {
+    totalNewJobs: totalNewJobsRes.count ?? 0,
+    totalAppliedJobs: totalAppliedJobsRes.count ?? 0,
+    totalTopMatches: totalTopMatchesRes.count ?? 0,
+    expiredJobsCount: expiredJobsRes.count ?? 0,
+    pendingScoreJobsCount: pendingScoreJobsRes.count ?? 0,
+    scoredJobsCount: scoredJobsRes.count ?? 0,
+    customResumeJobsCount: customResumeJobsRes.count ?? 0,
+    noCustomResumeJobsCount: noCustomResumeJobsRes.count ?? 0,
+    scoredWithOriginalResumeCount: scoredWithOriginalResumeRes.count ?? 0,
+    scoredWithCustomResumeCount: scoredWithCustomResumeRes.count ?? 0,
+    linkedInJobsCount: linkedInJobsRes.count ?? 0,
+    careersFutureJobsCount: careersFutureJobsRes.count ?? 0,
+    appliedTodayCount: appliedTodayRes.count ?? 0,
+  };
+}
+
+/**
+ * Cached version of getDashboardStats using Next.js unstable_cache.
+ * Automatically serves instant responses from cache.
+ * Revalidates in the background after 5 minutes or on-demand via tag 'dashboard-stats'.
+ */
+export const getCachedDashboardStats = unstable_cache(
+  async (localDateString: string) => {
+    return await getDashboardStats(localDateString);
+  },
+  ["dashboard-stats-cache"],
+  {
+    revalidate: 300, // Background revalidation every 5 minutes
+    tags: ["dashboard-stats"],
+  }
+);

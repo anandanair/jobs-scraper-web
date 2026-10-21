@@ -43,25 +43,25 @@ export default async function NewJobsPage({
   const minScore = minScoreParam ? parseInt(minScoreParam) : undefined;
   const maxScore = maxScoreParam ? parseInt(maxScoreParam) : undefined;
 
-  // Fetch the jobs for the current page
-  const newJobs: Job[] = await getNewJobs(
-    currentPage,
-    PAGE_SIZE,
-    providerFilter,
-    minScore,
-    maxScore,
-    interestFilter, // Pass interestFilter
-    searchQuery // Pass searchQuery
-  );
-
-  // Fetch total count
-  const totalCount = await getAllActiveJobsCount(
-    providerFilter,
-    minScore,
-    maxScore,
-    interestFilter, // Pass interestFilter
-    searchQuery // Pass searchQuery
-  );
+  // Fetch the jobs for the current page and total count in parallel
+  const [newJobs, totalCount] = await Promise.all([
+    getNewJobs(
+      currentPage,
+      PAGE_SIZE,
+      providerFilter,
+      minScore,
+      maxScore,
+      interestFilter,
+      searchQuery
+    ),
+    getAllActiveJobsCount(
+      providerFilter,
+      minScore,
+      maxScore,
+      interestFilter,
+      searchQuery
+    ),
+  ]);
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 

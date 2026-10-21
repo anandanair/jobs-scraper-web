@@ -79,3 +79,20 @@ export interface Resume {
   last_updated?: string; // Optional field for last update timestamp
   resume_link?: string; // Optional field for resume link ur
 }
+
+
+export interface DashboardStats {
+  totalNewJobs: number;
+  totalAppliedJobs: number;
+  totalTopMatches: number;
+  expiredJobsCount: number;
+  pendingScoreJobsCount: number;
+  scoredJobsCount: number;
+  customResumeJobsCount: number;
+  noCustomResumeJobsCount: number;
+  scoredWithOriginalResumeCount: number;
+  scoredWithCustomResumeCount: number;
+  linkedInJobsCount: number;
+  careersFutureJobsCount: number;
+  appliedTodayCount: number;
+}

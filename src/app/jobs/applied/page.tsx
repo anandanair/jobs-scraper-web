@@ -37,24 +37,23 @@ export default async function AppliedJobsPage({
   const sortBy = params?.sortBy as string; // e.g., 'application_date', 'resume_score'
   const sortOrder = params?.sortOrder as string; // e.g., 'asc', 'desc'
 
-  // Fetch the jobs for the current page
-  const appliedJobs: Job[] = await getAppliedJobs(
-    currentPage,
-    PAGE_SIZE,
-    providerFilter,
-    searchQuery,
-    applicationStatusFilter,
-    sortBy, // New: Pass sortBy
-    sortOrder // New: Pass sortOrder
-  );
-
-  // Fetch total count
-  const totalCount = await getAppliedJobsCount(
-    providerFilter,
-    searchQuery,
-    applicationStatusFilter
-    // Note: Sort parameters are typically not needed for total count
-  );
+  // Fetch the jobs for the current page and total count in parallel
+  const [appliedJobs, totalCount] = await Promise.all([
+    getAppliedJobs(
+      currentPage,
+      PAGE_SIZE,
+      providerFilter,
+      searchQuery,
+      applicationStatusFilter,
+      sortBy,
+      sortOrder
+    ),
+    getAppliedJobsCount(
+      providerFilter,
+      searchQuery,
+      applicationStatusFilter
+    ),
+  ]);
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
