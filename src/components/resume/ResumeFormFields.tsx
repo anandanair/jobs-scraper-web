@@ -16,6 +16,9 @@ import {
   FolderOpen,
   Award,
   Languages,
+  Linkedin,
+  Github,
+  ExternalLink,
 } from "lucide-react";
 import {
   SectionCard,
@@ -23,6 +26,7 @@ import {
   AddItemButton,
   ArrayItemCard,
 } from "./ResumeFormUI";
+import { TagListEditor } from "./TagListEditor";
 
 export interface ResumeFormProps {
   formData: Resume;
@@ -81,29 +85,127 @@ export function ResumeFormFields({
       </div>
 
       {/* Links */}
-      <SectionCard icon={<Globe size={18} />} title="Links">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormField
-            label="LinkedIn"
-            id="edit-linkedin"
-            value={formData.links?.linkedin || ""}
-            onChange={(e) => updateLinkField("linkedin", e.target.value)}
-            placeholder="https://linkedin.com/in/..."
-          />
-          <FormField
-            label="GitHub"
-            id="edit-github"
-            value={formData.links?.github || ""}
-            onChange={(e) => updateLinkField("github", e.target.value)}
-            placeholder="https://github.com/..."
-          />
-          <FormField
-            label="Portfolio"
-            id="edit-portfolio"
-            value={formData.links?.portfolio || ""}
-            onChange={(e) => updateLinkField("portfolio", e.target.value)}
-            placeholder="https://..."
-          />
+      <SectionCard icon={<Globe size={18} />} title="Online Profiles & Links">
+        <p className="text-xs text-slate-400 mb-3.5">
+          Provide your professional links. These are rendered in your resume header with clean links.
+        </p>
+        <div className="space-y-3.5">
+          {/* LinkedIn */}
+          <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl p-3 focus-within:bg-white focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+            <div className="flex items-center justify-between mb-1.5">
+              <label htmlFor="edit-linkedin" className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                <span className="p-1 rounded-md bg-blue-100/80 text-[#0A66C2]">
+                  <Linkedin size={14} />
+                </span>
+                <span>LinkedIn Profile</span>
+              </label>
+              {formData.links?.linkedin &&
+                formData.links.linkedin.trim() !== "" &&
+                formData.links.linkedin.toUpperCase() !== "NA" &&
+                formData.links.linkedin.toUpperCase() !== "N/A" && (
+                  <a
+                    href={
+                      formData.links.linkedin.startsWith("http")
+                        ? formData.links.linkedin
+                        : `https://${formData.links.linkedin}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                    title="Open LinkedIn in new tab"
+                  >
+                    <span>Test Link</span>
+                    <ExternalLink size={11} />
+                  </a>
+                )}
+            </div>
+            <input
+              type="text"
+              id="edit-linkedin"
+              value={formData.links?.linkedin || ""}
+              onChange={(e) => updateLinkField("linkedin", e.target.value)}
+              placeholder="e.g. linkedin.com/in/username or https://linkedin.com/in/..."
+              className="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-gray-200 rounded-lg text-slate-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 font-mono"
+            />
+          </div>
+
+          {/* GitHub */}
+          <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl p-3 focus-within:bg-white focus-within:border-slate-500 focus-within:ring-2 focus-within:ring-slate-100 transition-all">
+            <div className="flex items-center justify-between mb-1.5">
+              <label htmlFor="edit-github" className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                <span className="p-1 rounded-md bg-slate-200/80 text-slate-800">
+                  <Github size={14} />
+                </span>
+                <span>GitHub Profile</span>
+              </label>
+              {formData.links?.github &&
+                formData.links.github.trim() !== "" &&
+                formData.links.github.toUpperCase() !== "NA" &&
+                formData.links.github.toUpperCase() !== "N/A" && (
+                  <a
+                    href={
+                      formData.links.github.startsWith("http")
+                        ? formData.links.github
+                        : `https://${formData.links.github}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 hover:text-slate-900 hover:underline"
+                    title="Open GitHub in new tab"
+                  >
+                    <span>Test Link</span>
+                    <ExternalLink size={11} />
+                  </a>
+                )}
+            </div>
+            <input
+              type="text"
+              id="edit-github"
+              value={formData.links?.github || ""}
+              onChange={(e) => updateLinkField("github", e.target.value)}
+              placeholder="e.g. github.com/username or https://github.com/..."
+              className="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-gray-200 rounded-lg text-slate-800 placeholder:text-gray-400 focus:outline-none focus:border-slate-600 font-mono"
+            />
+          </div>
+
+          {/* Portfolio */}
+          <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl p-3 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100 transition-all">
+            <div className="flex items-center justify-between mb-1.5">
+              <label htmlFor="edit-portfolio" className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                <span className="p-1 rounded-md bg-emerald-100/80 text-emerald-700">
+                  <Globe size={14} />
+                </span>
+                <span>Portfolio / Personal Website</span>
+              </label>
+              {formData.links?.portfolio &&
+                formData.links.portfolio.trim() !== "" &&
+                formData.links.portfolio.toUpperCase() !== "NA" &&
+                formData.links.portfolio.toUpperCase() !== "N/A" && (
+                  <a
+                    href={
+                      formData.links.portfolio.startsWith("http")
+                        ? formData.links.portfolio
+                        : `https://${formData.links.portfolio}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 hover:text-emerald-900 hover:underline"
+                    title="Open Portfolio in new tab"
+                  >
+                    <span>Test Link</span>
+                    <ExternalLink size={11} />
+                  </a>
+                )}
+            </div>
+            <input
+              type="text"
+              id="edit-portfolio"
+              value={formData.links?.portfolio || ""}
+              onChange={(e) => updateLinkField("portfolio", e.target.value)}
+              placeholder="e.g. yoursite.com or https://..."
+              className="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-gray-200 rounded-lg text-slate-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-600 font-mono"
+            />
+          </div>
         </div>
       </SectionCard>
 
@@ -120,26 +222,13 @@ export function ResumeFormFields({
 
       {/* Skills */}
       <SectionCard icon={<Sparkles size={18} />} title="Skills">
-        <p className="text-xs text-slate-400 mb-3">
-          Comma-separated list of skills
-        </p>
-        <FormField
-          label="Skills"
+        <TagListEditor
+          label="Skills List"
           id="edit-skills"
-          value={
-            Array.isArray(formData.skills) ? formData.skills.join(", ") : ""
-          }
-          onChange={(e) =>
-            updateField(
-              "skills",
-              e.target.value
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean)
-            )
-          }
-          rows={3}
-          placeholder="JavaScript, Python, React, ..."
+          items={Array.isArray(formData.skills) ? formData.skills : []}
+          onChange={(newSkills) => updateField("skills", newSkills)}
+          placeholder="Type a skill and press Enter or comma (e.g. Python, Docker)..."
+          helperText="Add technical and domain skills. Press Enter or comma to create chips, or switch to Comma Text to edit directly."
         />
       </SectionCard>
 
@@ -363,19 +452,13 @@ export function ResumeFormFields({
                     )
                   }
                 />
-                <FormField
-                  label="Technologies (comma-separated)"
+                <TagListEditor
+                  label="Technologies Used"
                   id={`proj-tech-${i}`}
-                  value={
-                    Array.isArray(proj.technologies)
-                      ? proj.technologies.join(", ")
-                      : ""
+                  items={
+                    Array.isArray(proj.technologies) ? proj.technologies : []
                   }
-                  onChange={(e) => {
-                    const techs = e.target.value
-                      .split(",")
-                      .map((t) => t.trim())
-                      .filter(Boolean);
+                  onChange={(techs) => {
                     updateNestedField<Project>(
                       "projects",
                       i,
@@ -383,7 +466,8 @@ export function ResumeFormFields({
                       techs as any
                     );
                   }}
-                  placeholder="React, Node.js, ..."
+                  placeholder="e.g. React, Node.js (press Enter or comma)"
+                  compact
                 />
                 <FormField
                   label="Description"
@@ -478,27 +562,13 @@ export function ResumeFormFields({
 
       {/* Languages */}
       <SectionCard icon={<Languages size={18} />} title="Languages">
-        <p className="text-xs text-slate-400 mb-3">
-          Comma-separated list of languages
-        </p>
-        <FormField
-          label="Languages"
+        <TagListEditor
+          label="Languages & Proficiency"
           id="edit-languages"
-          value={
-            Array.isArray(formData.languages)
-              ? formData.languages.join(", ")
-              : ""
-          }
-          onChange={(e) =>
-            updateField(
-              "languages",
-              e.target.value
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean)
-            )
-          }
-          placeholder="English, Spanish, ..."
+          items={Array.isArray(formData.languages) ? formData.languages : []}
+          onChange={(newLanguages) => updateField("languages", newLanguages)}
+          placeholder="Type a language and press Enter or comma (e.g. English, Mandarin)..."
+          helperText="Add languages you speak. Press Enter or comma to create chips, or switch to Comma Text to edit directly."
         />
       </SectionCard>
     </>

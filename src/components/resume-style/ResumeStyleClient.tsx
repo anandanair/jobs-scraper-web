@@ -1424,7 +1424,13 @@ export default function ResumeStyleClient({
                           className="mt-1 font-medium space-x-2"
                           style={{ fontSize: currentSizes.meta }}
                         >
-                          {displayData.links.linkedin && (
+                          {Boolean(
+                            displayData.links.linkedin &&
+                              displayData.links.linkedin.trim() &&
+                              !["NA", "N/A", "NONE", "NULL"].includes(
+                                displayData.links.linkedin.trim().toUpperCase()
+                              )
+                          ) && (
                             <span
                               style={{ color: theme.colors.primary }}
                               className="underline"
@@ -1432,9 +1438,21 @@ export default function ResumeStyleClient({
                               LinkedIn
                             </span>
                           )}
-                          {displayData.links.github && (
+                          {Boolean(
+                            displayData.links.github &&
+                              displayData.links.github.trim() &&
+                              !["NA", "N/A", "NONE", "NULL"].includes(
+                                displayData.links.github.trim().toUpperCase()
+                              )
+                          ) && (
                             <>
-                              <span className="text-gray-400">|</span>
+                              {Boolean(
+                                displayData.links.linkedin &&
+                                  displayData.links.linkedin.trim() &&
+                                  !["NA", "N/A", "NONE", "NULL"].includes(
+                                    displayData.links.linkedin.trim().toUpperCase()
+                                  )
+                              ) && <span className="text-gray-400">|</span>}
                               <span
                                 style={{ color: theme.colors.primary }}
                                 className="underline"
@@ -1443,9 +1461,28 @@ export default function ResumeStyleClient({
                               </span>
                             </>
                           )}
-                          {displayData.links.portfolio && (
+                          {Boolean(
+                            displayData.links.portfolio &&
+                              displayData.links.portfolio.trim() &&
+                              !["NA", "N/A", "NONE", "NULL"].includes(
+                                displayData.links.portfolio.trim().toUpperCase()
+                              )
+                          ) && (
                             <>
-                              <span className="text-gray-400">|</span>
+                              {(Boolean(
+                                displayData.links.linkedin &&
+                                  displayData.links.linkedin.trim() &&
+                                  !["NA", "N/A", "NONE", "NULL"].includes(
+                                    displayData.links.linkedin.trim().toUpperCase()
+                                  )
+                              ) ||
+                                Boolean(
+                                  displayData.links.github &&
+                                    displayData.links.github.trim() &&
+                                    !["NA", "N/A", "NONE", "NULL"].includes(
+                                      displayData.links.github.trim().toUpperCase()
+                                    )
+                                )) && <span className="text-gray-400">|</span>}
                               <span
                                 style={{ color: theme.colors.primary }}
                                 className="underline"
@@ -1505,7 +1542,13 @@ export default function ResumeStyleClient({
                       className="mt-1 font-medium space-x-2"
                       style={{ fontSize: currentSizes.meta }}
                     >
-                      {displayData.links.linkedin && (
+                      {Boolean(
+                        displayData.links.linkedin &&
+                          displayData.links.linkedin.trim() &&
+                          !["NA", "N/A", "NONE", "NULL"].includes(
+                            displayData.links.linkedin.trim().toUpperCase()
+                          )
+                      ) && (
                         <span
                           style={{ color: theme.colors.primary }}
                           className="underline"
@@ -1513,9 +1556,21 @@ export default function ResumeStyleClient({
                           LinkedIn
                         </span>
                       )}
-                      {displayData.links.github && (
+                      {Boolean(
+                        displayData.links.github &&
+                          displayData.links.github.trim() &&
+                          !["NA", "N/A", "NONE", "NULL"].includes(
+                            displayData.links.github.trim().toUpperCase()
+                          )
+                      ) && (
                         <>
-                          <span className="text-gray-400">|</span>
+                          {Boolean(
+                            displayData.links.linkedin &&
+                              displayData.links.linkedin.trim() &&
+                              !["NA", "N/A", "NONE", "NULL"].includes(
+                                displayData.links.linkedin.trim().toUpperCase()
+                              )
+                          ) && <span className="text-gray-400">|</span>}
                           <span
                             style={{ color: theme.colors.primary }}
                             className="underline"
@@ -1524,9 +1579,28 @@ export default function ResumeStyleClient({
                           </span>
                         </>
                       )}
-                      {displayData.links.portfolio && (
+                      {Boolean(
+                        displayData.links.portfolio &&
+                          displayData.links.portfolio.trim() &&
+                          !["NA", "N/A", "NONE", "NULL"].includes(
+                            displayData.links.portfolio.trim().toUpperCase()
+                          )
+                      ) && (
                         <>
-                          <span className="text-gray-400">|</span>
+                          {(Boolean(
+                            displayData.links.linkedin &&
+                              displayData.links.linkedin.trim() &&
+                              !["NA", "N/A", "NONE", "NULL"].includes(
+                                displayData.links.linkedin.trim().toUpperCase()
+                              )
+                          ) ||
+                            Boolean(
+                              displayData.links.github &&
+                                displayData.links.github.trim() &&
+                                !["NA", "N/A", "NONE", "NULL"].includes(
+                                  displayData.links.github.trim().toUpperCase()
+                                )
+                            )) && <span className="text-gray-400">|</span>}
                           <span
                             style={{ color: theme.colors.primary }}
                             className="underline"

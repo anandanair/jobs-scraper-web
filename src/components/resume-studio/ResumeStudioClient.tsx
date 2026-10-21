@@ -1547,7 +1547,13 @@ export default function ResumeStudioClient({
                             className="mt-1 font-medium space-x-2"
                             style={{ fontSize: currentSizes.meta }}
                           >
-                            {formData.links.linkedin && (
+                            {Boolean(
+                              formData.links.linkedin &&
+                                formData.links.linkedin.trim() &&
+                                !["NA", "N/A", "NONE", "NULL"].includes(
+                                  formData.links.linkedin.trim().toUpperCase()
+                                )
+                            ) && (
                               <span
                                 style={{ color: theme.colors.primary }}
                                 className="underline"
@@ -1555,9 +1561,21 @@ export default function ResumeStudioClient({
                                 LinkedIn
                               </span>
                             )}
-                            {formData.links.github && (
+                            {Boolean(
+                              formData.links.github &&
+                                formData.links.github.trim() &&
+                                !["NA", "N/A", "NONE", "NULL"].includes(
+                                  formData.links.github.trim().toUpperCase()
+                                )
+                            ) && (
                               <>
-                                <span className="text-gray-400">|</span>
+                                {Boolean(
+                                  formData.links.linkedin &&
+                                    formData.links.linkedin.trim() &&
+                                    !["NA", "N/A", "NONE", "NULL"].includes(
+                                      formData.links.linkedin.trim().toUpperCase()
+                                    )
+                                ) && <span className="text-gray-400">|</span>}
                                 <span
                                   style={{ color: theme.colors.primary }}
                                   className="underline"
@@ -1566,9 +1584,28 @@ export default function ResumeStudioClient({
                                 </span>
                               </>
                             )}
-                            {formData.links.portfolio && (
+                            {Boolean(
+                              formData.links.portfolio &&
+                                formData.links.portfolio.trim() &&
+                                !["NA", "N/A", "NONE", "NULL"].includes(
+                                  formData.links.portfolio.trim().toUpperCase()
+                                )
+                            ) && (
                               <>
-                                <span className="text-gray-400">|</span>
+                                {(Boolean(
+                                  formData.links.linkedin &&
+                                    formData.links.linkedin.trim() &&
+                                    !["NA", "N/A", "NONE", "NULL"].includes(
+                                      formData.links.linkedin.trim().toUpperCase()
+                                    )
+                                ) ||
+                                  Boolean(
+                                    formData.links.github &&
+                                      formData.links.github.trim() &&
+                                      !["NA", "N/A", "NONE", "NULL"].includes(
+                                        formData.links.github.trim().toUpperCase()
+                                      )
+                                  )) && <span className="text-gray-400">|</span>}
                                 <span
                                   style={{ color: theme.colors.primary }}
                                   className="underline"
@@ -1628,7 +1665,13 @@ export default function ResumeStudioClient({
                         className="mt-1 font-medium space-x-2"
                         style={{ fontSize: currentSizes.meta }}
                       >
-                        {formData.links.linkedin && (
+                        {Boolean(
+                          formData.links.linkedin &&
+                            formData.links.linkedin.trim() &&
+                            !["NA", "N/A", "NONE", "NULL"].includes(
+                              formData.links.linkedin.trim().toUpperCase()
+                            )
+                        ) && (
                           <span
                             style={{ color: theme.colors.primary }}
                             className="underline"
@@ -1636,9 +1679,21 @@ export default function ResumeStudioClient({
                             LinkedIn
                           </span>
                         )}
-                        {formData.links.github && (
+                        {Boolean(
+                          formData.links.github &&
+                            formData.links.github.trim() &&
+                            !["NA", "N/A", "NONE", "NULL"].includes(
+                              formData.links.github.trim().toUpperCase()
+                            )
+                        ) && (
                           <>
-                            <span className="text-gray-400">|</span>
+                            {Boolean(
+                              formData.links.linkedin &&
+                                formData.links.linkedin.trim() &&
+                                !["NA", "N/A", "NONE", "NULL"].includes(
+                                  formData.links.linkedin.trim().toUpperCase()
+                                )
+                            ) && <span className="text-gray-400">|</span>}
                             <span
                               style={{ color: theme.colors.primary }}
                               className="underline"
@@ -1647,9 +1702,28 @@ export default function ResumeStudioClient({
                             </span>
                           </>
                         )}
-                        {formData.links.portfolio && (
+                        {Boolean(
+                          formData.links.portfolio &&
+                            formData.links.portfolio.trim() &&
+                            !["NA", "N/A", "NONE", "NULL"].includes(
+                              formData.links.portfolio.trim().toUpperCase()
+                            )
+                        ) && (
                           <>
-                            <span className="text-gray-400">|</span>
+                            {(Boolean(
+                              formData.links.linkedin &&
+                                formData.links.linkedin.trim() &&
+                                !["NA", "N/A", "NONE", "NULL"].includes(
+                                  formData.links.linkedin.trim().toUpperCase()
+                                )
+                            ) ||
+                              Boolean(
+                                formData.links.github &&
+                                  formData.links.github.trim() &&
+                                  !["NA", "N/A", "NONE", "NULL"].includes(
+                                    formData.links.github.trim().toUpperCase()
+                                  )
+                              )) && <span className="text-gray-400">|</span>}
                             <span
                               style={{ color: theme.colors.primary }}
                               className="underline"
