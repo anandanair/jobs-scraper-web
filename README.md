@@ -1,4 +1,25 @@
-# Job Scrapper Web
+# ⚠️ REPOSITORY MOVED & ARCHIVED
+
+> [!IMPORTANT]
+> **This repository is deprecated and no longer maintained.**  
+> Both the frontend web application and backend automation have been unified into a single repository:  
+> 
+> 👉 **Active Repository:** [https://github.com/anandanair/job-scraper](https://github.com/anandanair/job-scraper)
+
+### Migration Guide
+If you were using this repository, please switch to the unified repository:
+
+```bash
+git clone https://github.com/anandanair/job-scraper.git
+cd job-scraper
+npm run dev
+```
+
+All future development, releases, issues, and pull requests are managed at **[github.com/anandanair/job-scraper](https://github.com/anandanair/job-scraper)**.
+
+---
+
+# Job Scrapper Web (Archived Snapshot)
 
 Job Scrapper Web is a modern Next.js dashboard application designed to track, manage, and optimize job applications scraped using the companion backend [Job Scraper](https://github.com/anandanair/job-scraper). 
 
